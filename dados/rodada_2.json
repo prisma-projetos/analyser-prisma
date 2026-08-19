@@ -1,0 +1,81 @@
+{
+  "ator": {
+    "id": "ator_001",
+    "tipo": "politico",
+    "nome": "Ariel Fontenele Dourado"
+  },
+  "itens": [
+    {
+      "id": "not_011",
+      "veiculo": "Gazeta de Vila Serena",
+      "url": "https://exemplo.invalido/gazeta/merenda-escolar",
+      "data": "2026-08-24",
+      "titulo": "Escolas relatam falta de itens da merenda por duas semanas",
+      "texto": "Sete escolas da rede municipal relataram falta de itens da merenda escolar nas duas primeiras semanas de agosto. Diretores ouvidos pela reportagem citam ausência de proteína e de frutas no cardápio previsto. A secretaria de educação de Vila Serena do Norte reconheceu a interrupção no fornecimento e apontou falha da empresa contratada. A prefeitura de Ariel Fontenele Dourado informou que aplicou multa à fornecedora e acionou o contrato reserva. O abastecimento foi restabelecido na segunda-feira, segundo a pasta. O conselho de alimentação escolar pediu relatório detalhado do período.",
+      "rotulo": "negativo"
+    },
+    {
+      "id": "not_012",
+      "veiculo": "Diário do Contorno",
+      "url": "https://exemplo.invalido/contorno/creche-canabrava",
+      "data": "2026-08-25",
+      "titulo": "Creche do Canabrava é entregue com 120 vagas",
+      "texto": "A creche municipal do bairro Canabrava foi entregue nesta segunda-feira com capacidade para 120 crianças em período integral. A obra levou 14 meses e foi concluída dentro do prazo do contrato. A prefeita Ariel Fontenele Dourado participou da abertura e informou que as matrículas começam na próxima semana. A unidade reduz a fila de espera do bairro, que reunia 180 famílias em julho. O prédio conta com refeitório próprio e sala de acolhimento.",
+      "rotulo": "positivo"
+    },
+    {
+      "id": "not_013",
+      "veiculo": "Agência Ponto Livre",
+      "url": "https://exemplo.invalido/pontolivre/nota-agenda",
+      "data": "2026-08-26",
+      "titulo": "Prefeitura informa expediente do feriado municipal",
+      "texto": "A prefeitura de Vila Serena do Norte informou o expediente do feriado municipal da próxima sexta-feira. Os serviços administrativos ficam suspensos e retornam na segunda-feira. Os serviços essenciais funcionam em escala.",
+      "rotulo": "neutro"
+    },
+    {
+      "id": "not_014",
+      "veiculo": "Jornal do Litoral",
+      "url": "https://exemplo.invalido/litoral/aditivo-pavimentacao",
+      "data": "2026-08-27",
+      "titulo": "Aditivo eleva em 28% o valor do contrato de pavimentação",
+      "texto": "Um aditivo publicado no diário oficial elevou em 28% o valor do contrato de pavimentação do distrito de Barra Limpa. O acréscimo corresponde a R$ 2,1 milhões sobre o valor original firmado em janeiro. A justificativa registrada no processo cita mudança no tipo de base do pavimento após sondagem do solo. A oposição na Câmara pediu vista do processo e sustenta que a sondagem deveria ter sido feita antes do edital. A prefeitura de Ariel Fontenele Dourado afirmou que o aditivo respeita o limite legal de 25% acrescido de reajuste contratual. O tribunal de contas ainda não se manifestou sobre o caso.",
+      "rotulo": "negativo"
+    },
+    {
+      "id": "not_015",
+      "veiculo": "Portal Maré Alta",
+      "url": "https://exemplo.invalido/mare/concurso-inscricoes",
+      "data": "2026-08-28",
+      "titulo": "Inscrições do concurso municipal seguem até 10 de setembro",
+      "texto": "As inscrições do concurso público de Vila Serena do Norte seguem abertas até 10 de setembro pelo portal da prefeitura. O edital oferece 84 vagas distribuídas entre 12 cargos das áreas de educação, saúde e administração. A taxa varia conforme o nível de escolaridade exigido e a isenção pode ser pedida até sexta-feira. O edital foi assinado pela prefeita Ariel Fontenele Dourado em julho. As provas estão previstas para o dia 25 de outubro.",
+      "rotulo": "neutro"
+    },
+    {
+      "id": "not_016",
+      "veiculo": "O Correio das Dunas",
+      "url": "https://exemplo.invalido/dunas/programa-leitura",
+      "data": "2026-08-29",
+      "titulo": "Programa de leitura de Vila Serena recebe reconhecimento estadual",
+      "texto": "O programa municipal de leitura nas escolas recebeu reconhecimento do governo do estado em cerimônia realizada na capital. A iniciativa atende 3,4 mil estudantes do ensino fundamental em 22 unidades. A prefeita Ariel Fontenele Dourado recebeu o certificado e citou a ampliação do acervo das bibliotecas escolares. Segundo a secretaria de educação, o índice de empréstimo de livros dobrou em dois anos. O programa passa a integrar uma rede estadual de práticas de leitura.",
+      "rotulo": "positivo"
+    },
+    {
+      "id": "not_017",
+      "veiculo": "Rádio Farol AM",
+      "url": "https://exemplo.invalido/farol/prestacao-contas-julho",
+      "data": "2026-07-22",
+      "titulo": "Prestação de contas do transporte escolar tem inconsistência apontada",
+      "texto": "O relatório de prestação de contas do transporte escolar do primeiro semestre teve inconsistência apontada pelo setor de controle interno da prefeitura. O documento registra divergência entre a quilometragem informada pela empresa e os registros de rota de três linhas do distrito de Barra Limpa. A prefeitura de Ariel Fontenele Dourado informou que abriu apuração e notificou a contratada. A empresa afirmou que a diferença decorre de desvios de rota em período de chuva. O controle interno pediu documentação complementar em 15 dias.",
+      "rotulo": "negativo"
+    },
+    {
+      "id": "not_004",
+      "veiculo": "Rádio Farol AM",
+      "url": "https://exemplo.invalido/farol/iluminacao-bairros",
+      "data": "2026-08-09",
+      "titulo": "Moradores cobram troca de lâmpadas prometida para julho",
+      "texto": "Moradores de quatro bairros cobraram nesta semana a troca de lâmpadas prometida pela prefeitura para julho. O cronograma apresentado em audiência previa 1.200 pontos substituídos até o fim do mês passado. Levantamento da associação de moradores do bairro Canabrava aponta 310 pontos concluídos. A prefeitura de Ariel Fontenele Dourado reconheceu o descumprimento do prazo e disse que a empresa contratada teve falha no fornecimento das peças. O setor de obras informou que aplicou advertência à contratada. Uma nova etapa foi anunciada para setembro, sem cronograma detalhado.",
+      "rotulo": "neutro"
+    }
+  ]
+}

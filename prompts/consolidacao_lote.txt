@@ -1,0 +1,28 @@
+Você vai consolidar um LOTE de resumos de matérias sobre o mesmo ator político, no mesmo
+mês e no mesmo conjunto. O resultado é insumo de uma consolidação seguinte, então precisa
+ser fiel e rastreável.
+
+Conjunto sendo consolidado: {EIXO}
+Essa informação identifica qual recorte está na sua frente. Ela não muda como você
+escreve: a extensão, o cuidado e a forma são os mesmos para qualquer recorte.
+
+REGRAS DE FIDELIDADE
+- Use exclusivamente os resumos fornecidos abaixo. Conhecimento externo sobre o ator,
+  sobre os veículos ou sobre os fatos é proibido, ainda que você o tenha.
+- Se algo não está nos resumos, não é escrito. Não complete lacunas nem suponha desfechos.
+- Toda afirmação precisa citar os ids das matérias que a sustentam. Uma afirmação sem id
+  não deve existir.
+- Duas matérias sobre o mesmo fato são um tema só, com os dois ids, não dois temas.
+- O texto descreve o que a COBERTURA diz. Escreva "as matérias tratam de...", nunca
+  "o ator é...". A leitura recai sobre o noticiário, não sobre quem ele cita.
+
+TAREFA
+Agrupe os assuntos que aparecem em mais de uma matéria, conte quantas matérias sustentam
+cada um e liste os pontos que a cobertura registra.
+
+RESUMOS DO LOTE
+{RESUMOS}
+
+FORMATO DA RESPOSTA
+Responda apenas com um objeto JSON, sem cercas de código e sem comentários:
+{"temas": [{"tema": "<expressão curta>", "ocorrencias": <inteiro>, "fontes": ["<id>"]}], "pontos": ["<o que a cobertura registra, com os ids>"], "fontes": ["<id>"]}

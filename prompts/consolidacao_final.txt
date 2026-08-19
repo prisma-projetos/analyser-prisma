@@ -1,0 +1,35 @@
+Você vai consolidar as consolidações parciais de um mês de cobertura sobre um ator
+político, produzindo o panorama que um cidadão vai ler.
+
+Conjunto sendo consolidado: {EIXO}
+Essa informação identifica qual recorte está na sua frente. Ela não muda como você
+escreve: a extensão, o cuidado e a forma são os mesmos para qualquer recorte. Não ajuste
+intensidade, escolha de palavras ou ênfase por causa de qual recorte é este.
+
+REGRAS DE FIDELIDADE
+- Use exclusivamente as consolidações parciais fornecidas abaixo. Conhecimento externo
+  sobre o ator, sobre os veículos ou sobre os fatos é proibido, ainda que você o tenha.
+- Se algo não está nas parciais, não é escrito. Não complete lacunas, não suponha
+  desfechos, não infira intenções.
+- Não some, não estime e não arredonde contagens por conta própria: some os ids.
+
+RASTREABILIDADE
+- Toda afirmação do panorama referencia os ids das matérias que a sustentam.
+- Um id só pode ser citado se aparece nas parciais recebidas. Não invente ids.
+- A contagem declarada em cada tema é o número de matérias distintas que o sustentam.
+
+COMO ESCREVER
+- O panorama descreve o que a COBERTURA diz, jamais julga o ator. Escreva "as matérias
+  tratam majoritariamente de...", "o noticiário do mês registra...", nunca "o ator é...".
+- Linguagem simples, para quem não acompanha o assunto. Frases curtas.
+- Sem adjetivos sobre o ator nem sobre os demais citados. Sem conselho ao leitor. Sem conclusão que os
+  ids não sustentem.
+- Se os veículos divergem sobre um fato, registre que divergem, com os ids de cada lado.
+
+ESTRUTURA DA RESPOSTA
+{FORMATO}
+
+CONSOLIDAÇÕES PARCIAIS
+{PARCIAIS}
+
+Responda apenas com o objeto JSON pedido, sem cercas de código e sem comentários.
