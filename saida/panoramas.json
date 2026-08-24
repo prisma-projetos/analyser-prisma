@@ -1,0 +1,659 @@
+[
+  {
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "eixo": "negativo",
+    "versao": 1,
+    "formato": "detalhado",
+    "panorama": {
+      "ator_id": "ator_001",
+      "janela": "2026-08",
+      "eixo": "negativo",
+      "total_itens": 6,
+      "temas": [
+        {
+          "tema": "licitação",
+          "ocorrencias": 2,
+          "fontes": [
+            "not_005",
+            "not_006"
+          ]
+        },
+        {
+          "tema": "abril",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_001"
+          ]
+        },
+        {
+          "tema": "atraso",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_002"
+          ]
+        },
+        {
+          "tema": "cláusula",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_005"
+          ]
+        },
+        {
+          "tema": "contas",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_006"
+          ]
+        },
+        {
+          "tema": "contratada",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_004"
+          ]
+        }
+      ],
+      "fontes": [
+        "not_001",
+        "not_002",
+        "not_003",
+        "not_004",
+        "not_005",
+        "not_006"
+      ],
+      "texto": null,
+      "fatos_mais_citados": [
+        {
+          "descricao": "A reforma do mercado municipal de Vila Serena do Norte completou cinco meses sem movimentação no canteiro.",
+          "fontes": [
+            "not_001"
+          ]
+        },
+        {
+          "descricao": "O repasse mensal destinado às unidades básicas de saúde foi liberado com 40 dias de atraso, segundo documento obtido pela reportagem.",
+          "fontes": [
+            "not_002"
+          ]
+        },
+        {
+          "descricao": "O contrato de limpeza urbana firmado pela prefeitura foi questionado em sessão da Câmara na quarta-feira.",
+          "fontes": [
+            "not_003"
+          ]
+        },
+        {
+          "descricao": "Moradores de quatro bairros cobraram nesta semana a troca de lâmpadas prometida pela prefeitura para julho.",
+          "fontes": [
+            "not_004"
+          ]
+        },
+        {
+          "descricao": "O tribunal de contas do estado determinou a suspensão da licitação para a reforma da rodoviária de Vila Serena do Norte.",
+          "fontes": [
+            "not_005"
+          ]
+        }
+      ],
+      "respostas_registradas": [
+        {
+          "citado": "alvo da cobertura",
+          "houve_resposta": true,
+          "fontes": [
+            "not_002",
+            "not_005"
+          ]
+        },
+        {
+          "citado": "alvo da cobertura",
+          "houve_resposta": false,
+          "fontes": [
+            "not_001",
+            "not_003",
+            "not_004",
+            "not_006"
+          ]
+        }
+      ]
+    },
+    "avisos": [],
+    "lotes": 2,
+    "modelo": "fake",
+    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
+    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
+    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "rodada": "rodada_1.json",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  {
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "eixo": "positivo",
+    "versao": 1,
+    "formato": "detalhado",
+    "panorama": {
+      "ator_id": "ator_001",
+      "janela": "2026-08",
+      "eixo": "positivo",
+      "total_itens": 2,
+      "temas": [
+        {
+          "tema": "aroeira",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_007"
+          ]
+        },
+        {
+          "tema": "convênio",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_008"
+          ]
+        },
+        {
+          "tema": "entregue",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_008"
+          ]
+        },
+        {
+          "tema": "estado",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_008"
+          ]
+        },
+        {
+          "tema": "saúde",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_007"
+          ]
+        },
+        {
+          "tema": "unidade",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_007"
+          ]
+        }
+      ],
+      "fontes": [
+        "not_007",
+        "not_008"
+      ],
+      "texto": null,
+      "fatos_mais_citados": [
+        {
+          "descricao": "A unidade básica de saúde do bairro Aroeira passou a funcionar aos sábados a partir deste mês.",
+          "fontes": [
+            "not_007"
+          ]
+        },
+        {
+          "descricao": "A ponte do Riacho Fundo foi entregue ao tráfego na sexta-feira, dez meses após o início das obras.",
+          "fontes": [
+            "not_008"
+          ]
+        }
+      ],
+      "respostas_registradas": [
+        {
+          "citado": "alvo da cobertura",
+          "houve_resposta": true,
+          "fontes": [
+            "not_008"
+          ]
+        },
+        {
+          "citado": "alvo da cobertura",
+          "houve_resposta": false,
+          "fontes": [
+            "not_007"
+          ]
+        }
+      ]
+    },
+    "avisos": [],
+    "lotes": 1,
+    "modelo": "fake",
+    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
+    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
+    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "rodada": "rodada_1.json",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  {
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "eixo": "neutro",
+    "versao": 1,
+    "formato": "compacto",
+    "panorama": {
+      "ator_id": "ator_001",
+      "janela": "2026-08",
+      "eixo": "neutro",
+      "total_itens": 2,
+      "temas": [
+        {
+          "tema": "ajuste",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_010"
+          ]
+        },
+        {
+          "tema": "audiência",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_009"
+          ]
+        },
+        {
+          "tema": "calendário",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_010"
+          ]
+        },
+        {
+          "tema": "datas",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_010"
+          ]
+        }
+      ],
+      "fontes": [
+        "not_009",
+        "not_010"
+      ],
+      "texto": "A cobertura do período reúne 2 matérias sobre o alvo (not_009, not_010). Os assuntos mais frequentes são ajuste, audiência. As matérias descrevem os fatos sem que os veículos registrem contestação.",
+      "fatos_mais_citados": [],
+      "respostas_registradas": []
+    },
+    "avisos": [],
+    "lotes": 1,
+    "modelo": "fake",
+    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
+    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
+    "hash_prompt_formato": "8a9844de28f003204f1e3755dfc1e134d6b9beadf79f443c277948a806eaf23f",
+    "rodada": "rodada_1.json",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  {
+    "ator_id": "ator_001",
+    "janela": "2026-07",
+    "eixo": "negativo",
+    "versao": 1,
+    "formato": "detalhado",
+    "panorama": {
+      "ator_id": "ator_001",
+      "janela": "2026-07",
+      "eixo": "negativo",
+      "total_itens": 1,
+      "temas": [
+        {
+          "tema": "apontada",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_017"
+          ]
+        },
+        {
+          "tema": "contas",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_017"
+          ]
+        },
+        {
+          "tema": "controle",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_017"
+          ]
+        }
+      ],
+      "fontes": [
+        "not_017"
+      ],
+      "texto": null,
+      "fatos_mais_citados": [
+        {
+          "descricao": "O relatório de prestação de contas do transporte escolar do primeiro semestre teve inconsistência apontada pelo setor de controle interno da prefeitura.",
+          "fontes": [
+            "not_017"
+          ]
+        }
+      ],
+      "respostas_registradas": [
+        {
+          "citado": "alvo da cobertura",
+          "houve_resposta": true,
+          "fontes": [
+            "not_017"
+          ]
+        }
+      ]
+    },
+    "avisos": [],
+    "lotes": 1,
+    "modelo": "fake",
+    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
+    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
+    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "rodada": "rodada_2.json",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  {
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "eixo": "negativo",
+    "versao": 2,
+    "formato": "detalhado",
+    "panorama": {
+      "ator_id": "ator_001",
+      "janela": "2026-08",
+      "eixo": "negativo",
+      "total_itens": 7,
+      "temas": [
+        {
+          "tema": "contrato",
+          "ocorrencias": 2,
+          "fontes": [
+            "not_003",
+            "not_014"
+          ]
+        },
+        {
+          "tema": "licitação",
+          "ocorrencias": 2,
+          "fontes": [
+            "not_005",
+            "not_006"
+          ]
+        },
+        {
+          "tema": "abril",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_001"
+          ]
+        },
+        {
+          "tema": "aditivo",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_014"
+          ]
+        },
+        {
+          "tema": "atraso",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_002"
+          ]
+        },
+        {
+          "tema": "cláusula",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_005"
+          ]
+        }
+      ],
+      "fontes": [
+        "not_001",
+        "not_002",
+        "not_003",
+        "not_005",
+        "not_006",
+        "not_011",
+        "not_014"
+      ],
+      "texto": null,
+      "fatos_mais_citados": [
+        {
+          "descricao": "A reforma do mercado municipal de Vila Serena do Norte completou cinco meses sem movimentação no canteiro.",
+          "fontes": [
+            "not_001"
+          ]
+        },
+        {
+          "descricao": "O repasse mensal destinado às unidades básicas de saúde foi liberado com 40 dias de atraso, segundo documento obtido pela reportagem.",
+          "fontes": [
+            "not_002"
+          ]
+        },
+        {
+          "descricao": "O contrato de limpeza urbana firmado pela prefeitura foi questionado em sessão da Câmara na quarta-feira.",
+          "fontes": [
+            "not_003"
+          ]
+        },
+        {
+          "descricao": "O tribunal de contas do estado determinou a suspensão da licitação para a reforma da rodoviária de Vila Serena do Norte.",
+          "fontes": [
+            "not_005"
+          ]
+        },
+        {
+          "descricao": "A licitação da reforma da rodoviária municipal foi suspensa por determinação do tribunal de contas do estado, publicada na noite de terça-feira.",
+          "fontes": [
+            "not_006"
+          ]
+        }
+      ],
+      "respostas_registradas": [
+        {
+          "citado": "alvo da cobertura",
+          "houve_resposta": true,
+          "fontes": [
+            "not_002",
+            "not_005",
+            "not_014"
+          ]
+        },
+        {
+          "citado": "alvo da cobertura",
+          "houve_resposta": false,
+          "fontes": [
+            "not_001",
+            "not_003",
+            "not_006",
+            "not_011"
+          ]
+        }
+      ]
+    },
+    "avisos": [],
+    "lotes": 2,
+    "modelo": "fake",
+    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
+    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
+    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "rodada": "rodada_2.json",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  {
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "eixo": "positivo",
+    "versao": 2,
+    "formato": "detalhado",
+    "panorama": {
+      "ator_id": "ator_001",
+      "janela": "2026-08",
+      "eixo": "positivo",
+      "total_itens": 4,
+      "temas": [
+        {
+          "tema": "aroeira",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_007"
+          ]
+        },
+        {
+          "tema": "bairro",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_012"
+          ]
+        },
+        {
+          "tema": "canabrava",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_012"
+          ]
+        },
+        {
+          "tema": "convênio",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_008"
+          ]
+        },
+        {
+          "tema": "creche",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_012"
+          ]
+        },
+        {
+          "tema": "entregue",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_008"
+          ]
+        }
+      ],
+      "fontes": [
+        "not_007",
+        "not_008",
+        "not_012",
+        "not_016"
+      ],
+      "texto": null,
+      "fatos_mais_citados": [
+        {
+          "descricao": "A unidade básica de saúde do bairro Aroeira passou a funcionar aos sábados a partir deste mês.",
+          "fontes": [
+            "not_007"
+          ]
+        },
+        {
+          "descricao": "A ponte do Riacho Fundo foi entregue ao tráfego na sexta-feira, dez meses após o início das obras.",
+          "fontes": [
+            "not_008"
+          ]
+        },
+        {
+          "descricao": "A creche municipal do bairro Canabrava foi entregue nesta segunda-feira com capacidade para 120 crianças em período integral.",
+          "fontes": [
+            "not_012"
+          ]
+        },
+        {
+          "descricao": "O programa municipal de leitura nas escolas recebeu reconhecimento do governo do estado em cerimônia realizada na capital.",
+          "fontes": [
+            "not_016"
+          ]
+        }
+      ],
+      "respostas_registradas": [
+        {
+          "citado": "alvo da cobertura",
+          "houve_resposta": true,
+          "fontes": [
+            "not_008",
+            "not_012"
+          ]
+        },
+        {
+          "citado": "alvo da cobertura",
+          "houve_resposta": false,
+          "fontes": [
+            "not_007",
+            "not_016"
+          ]
+        }
+      ]
+    },
+    "avisos": [],
+    "lotes": 1,
+    "modelo": "fake",
+    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
+    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
+    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "rodada": "rodada_2.json",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  {
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "eixo": "neutro",
+    "versao": 2,
+    "formato": "compacto",
+    "panorama": {
+      "ator_id": "ator_001",
+      "janela": "2026-08",
+      "eixo": "neutro",
+      "total_itens": 5,
+      "temas": [
+        {
+          "tema": "ajuste",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_010"
+          ]
+        },
+        {
+          "tema": "audiência",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_009"
+          ]
+        },
+        {
+          "tema": "calendário",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_010"
+          ]
+        },
+        {
+          "tema": "concurso",
+          "ocorrencias": 1,
+          "fontes": [
+            "not_015"
+          ]
+        }
+      ],
+      "fontes": [
+        "not_004",
+        "not_009",
+        "not_010",
+        "not_013",
+        "not_015"
+      ],
+      "texto": "A cobertura do período reúne 5 matérias sobre o alvo (not_004, not_009, not_010, not_013, not_015). Os assuntos mais frequentes são ajuste, audiência. As matérias descrevem os fatos sem que os veículos registrem contestação.",
+      "fatos_mais_citados": [],
+      "respostas_registradas": []
+    },
+    "avisos": [],
+    "lotes": 1,
+    "modelo": "fake",
+    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
+    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
+    "hash_prompt_formato": "8a9844de28f003204f1e3755dfc1e134d6b9beadf79f443c277948a806eaf23f",
+    "rodada": "rodada_2.json",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  }
+]

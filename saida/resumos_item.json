@@ -1,0 +1,325 @@
+{
+  "not_001": {
+    "item_id": "not_001",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Jornal do Litoral",
+    "url": "https://exemplo.invalido/litoral/mercado-parado",
+    "data": "2026-08-03",
+    "titulo": "Obra do mercado municipal completa cinco meses parada",
+    "resumo": "A reforma do mercado municipal de Vila Serena do Norte completou cinco meses sem movimentação no canteiro. A gestão de Ariel Fontenele Dourado atribuiu o atraso à troca da empresa responsável.",
+    "temas": [
+      "mercado",
+      "meses",
+      "abril"
+    ],
+    "fonte_id": "not_001",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_002": {
+    "item_id": "not_002",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Gazeta de Vila Serena",
+    "url": "https://exemplo.invalido/gazeta/repasse-saude",
+    "data": "2026-08-05",
+    "titulo": "Repasse à rede de saúde sai com 40 dias de atraso",
+    "resumo": "O repasse mensal destinado às unidades básicas de saúde foi liberado com 40 dias de atraso, segundo documento obtido pela reportagem. A administração de Ariel Fontenele Dourado informou que o calendário foi afetado por uma queda na arrecadação do trimestre.",
+    "temas": [
+      "saúde",
+      "atraso",
+      "feira"
+    ],
+    "fonte_id": "not_002",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_003": {
+    "item_id": "not_003",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Portal Maré Alta",
+    "url": "https://exemplo.invalido/mare/contrato-limpeza",
+    "data": "2026-08-07",
+    "titulo": "Contrato de limpeza urbana é alvo de questionamento na Câmara",
+    "resumo": "O contrato de limpeza urbana firmado pela prefeitura foi questionado em sessão da Câmara na quarta-feira. A prefeita Ariel Fontenele Dourado apresentou na mesma sessão o parecer técnico que embasou o preço, assinado por dois engenheiros do quadro efetivo.",
+    "temas": [
+      "sessão",
+      "contrato",
+      "câmara"
+    ],
+    "fonte_id": "not_003",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_004": {
+    "item_id": "not_004",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Rádio Farol AM",
+    "url": "https://exemplo.invalido/farol/iluminacao-bairros",
+    "data": "2026-08-09",
+    "titulo": "Moradores cobram troca de lâmpadas prometida para julho",
+    "resumo": "Moradores de quatro bairros cobraram nesta semana a troca de lâmpadas prometida pela prefeitura para julho. A prefeitura de Ariel Fontenele Dourado reconheceu o descumprimento do prazo e disse que a empresa contratada teve falha no fornecimento das peças.",
+    "temas": [
+      "moradores",
+      "contratada",
+      "cronograma"
+    ],
+    "fonte_id": "not_004",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_005": {
+    "item_id": "not_005",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Jornal do Litoral",
+    "url": "https://exemplo.invalido/litoral/licitacao-anulada",
+    "data": "2026-08-12",
+    "titulo": "Tribunal manda suspender licitação da reforma da rodoviária",
+    "resumo": "O tribunal de contas do estado determinou a suspensão da licitação para a reforma da rodoviária de Vila Serena do Norte. A prefeitura de Ariel Fontenele Dourado afirmou que vai apresentar esclarecimentos no prazo legal e defendeu a cláusula como exigência de segurança.",
+    "temas": [
+      "cláusula",
+      "licitação",
+      "reforma"
+    ],
+    "fonte_id": "not_005",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_006": {
+    "item_id": "not_006",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "O Correio das Dunas",
+    "url": "https://exemplo.invalido/dunas/rodoviaria-suspensa",
+    "data": "2026-08-12",
+    "titulo": "Licitação da rodoviária é suspensa por decisão do tribunal de contas",
+    "resumo": "A licitação da reforma da rodoviária municipal foi suspensa por determinação do tribunal de contas do estado, publicada na noite de terça-feira. Em resposta à reportagem, a prefeitura de Ariel Fontenele Dourado disse que o edital seguiu modelo usado em obras anteriores e que prestará os esclarecimentos pedidos.",
+    "temas": [
+      "edital",
+      "contas",
+      "licitação"
+    ],
+    "fonte_id": "not_006",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_007": {
+    "item_id": "not_007",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Diário do Contorno",
+    "url": "https://exemplo.invalido/contorno/unidade-aroeira",
+    "data": "2026-08-14",
+    "titulo": "Unidade de saúde do Aroeira passa a atender aos sábados",
+    "resumo": "A unidade básica de saúde do bairro Aroeira passou a funcionar aos sábados a partir deste mês. A ampliação do horário foi anunciada pela prefeita Ariel Fontenele Dourado em visita ao equipamento na quinta-feira.",
+    "temas": [
+      "saúde",
+      "unidade",
+      "aroeira"
+    ],
+    "fonte_id": "not_007",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_008": {
+    "item_id": "not_008",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Agência Ponto Livre",
+    "url": "https://exemplo.invalido/pontolivre/ponte-riacho",
+    "data": "2026-08-17",
+    "titulo": "Ponte do Riacho Fundo é entregue após convênio com o estado",
+    "resumo": "A ponte do Riacho Fundo foi entregue ao tráfego na sexta-feira, dez meses após o início das obras. O secretário estadual de infraestrutura, Teobaldo Ramires, participou da cerimônia e informou que o estado bancou 60% do custo.",
+    "temas": [
+      "convênio",
+      "entregue",
+      "estado"
+    ],
+    "fonte_id": "not_008",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_009": {
+    "item_id": "not_009",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Gazeta de Vila Serena",
+    "url": "https://exemplo.invalido/gazeta/audiencia-ldo",
+    "data": "2026-08-19",
+    "titulo": "Audiência pública sobre a LDO acontece na próxima terça",
+    "resumo": "A audiência pública de apresentação da Lei de Diretrizes Orçamentárias de Vila Serena do Norte está marcada para a próxima terça-feira, às 19h, no plenário da Câmara. A sessão é aberta ao público e terá inscrição de falas na entrada.",
+    "temas": [
+      "audiência",
+      "próxima",
+      "pública"
+    ],
+    "fonte_id": "not_009",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_010": {
+    "item_id": "not_010",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Portal Maré Alta",
+    "url": "https://exemplo.invalido/mare/calendario-escolar",
+    "data": "2026-08-21",
+    "titulo": "Calendário escolar tem ajuste de duas datas no segundo semestre",
+    "resumo": "A secretaria municipal de educação publicou ajuste em duas datas do calendário escolar do segundo semestre. O recesso de outubro passa de 12 para 15 de outubro e a formação de professores foi remarcada para 6 de novembro.",
+    "temas": [
+      "ajuste",
+      "calendário",
+      "datas"
+    ],
+    "fonte_id": "not_010",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_011": {
+    "item_id": "not_011",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Gazeta de Vila Serena",
+    "url": "https://exemplo.invalido/gazeta/merenda-escolar",
+    "data": "2026-08-24",
+    "titulo": "Escolas relatam falta de itens da merenda por duas semanas",
+    "resumo": "Sete escolas da rede municipal relataram falta de itens da merenda escolar nas duas primeiras semanas de agosto. A secretaria de educação de Vila Serena do Norte reconheceu a interrupção no fornecimento e apontou falha da empresa contratada.",
+    "temas": [
+      "escolar",
+      "escolas",
+      "falta"
+    ],
+    "fonte_id": "not_011",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_012": {
+    "item_id": "not_012",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Diário do Contorno",
+    "url": "https://exemplo.invalido/contorno/creche-canabrava",
+    "data": "2026-08-25",
+    "titulo": "Creche do Canabrava é entregue com 120 vagas",
+    "resumo": "A creche municipal do bairro Canabrava foi entregue nesta segunda-feira com capacidade para 120 crianças em período integral. A prefeita Ariel Fontenele Dourado participou da abertura e informou que as matrículas começam na próxima semana.",
+    "temas": [
+      "bairro",
+      "canabrava",
+      "creche"
+    ],
+    "fonte_id": "not_012",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_013": {
+    "item_id": "not_013",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Agência Ponto Livre",
+    "url": "https://exemplo.invalido/pontolivre/nota-agenda",
+    "data": "2026-08-26",
+    "titulo": "Prefeitura informa expediente do feriado municipal",
+    "resumo": "A prefeitura de Vila Serena do Norte informou o expediente do feriado municipal da próxima sexta-feira. Os serviços administrativos ficam suspensos e retornam na segunda-feira.",
+    "temas": [
+      "expediente",
+      "feira",
+      "feriado"
+    ],
+    "fonte_id": "not_013",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_014": {
+    "item_id": "not_014",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Jornal do Litoral",
+    "url": "https://exemplo.invalido/litoral/aditivo-pavimentacao",
+    "data": "2026-08-27",
+    "titulo": "Aditivo eleva em 28% o valor do contrato de pavimentação",
+    "resumo": "Um aditivo publicado no diário oficial elevou em 28% o valor do contrato de pavimentação do distrito de Barra Limpa. A prefeitura de Ariel Fontenele Dourado afirmou que o aditivo respeita o limite legal de 25% acrescido de reajuste contratual.",
+    "temas": [
+      "aditivo",
+      "valor",
+      "contrato"
+    ],
+    "fonte_id": "not_014",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_015": {
+    "item_id": "not_015",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "Portal Maré Alta",
+    "url": "https://exemplo.invalido/mare/concurso-inscricoes",
+    "data": "2026-08-28",
+    "titulo": "Inscrições do concurso municipal seguem até 10 de setembro",
+    "resumo": "As inscrições do concurso público de Vila Serena do Norte seguem abertas até 10 de setembro pelo portal da prefeitura. O edital oferece 84 vagas distribuídas entre 12 cargos das áreas de educação, saúde e administração.",
+    "temas": [
+      "concurso",
+      "edital",
+      "inscrições"
+    ],
+    "fonte_id": "not_015",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_016": {
+    "item_id": "not_016",
+    "ator_id": "ator_001",
+    "janela": "2026-08",
+    "veiculo": "O Correio das Dunas",
+    "url": "https://exemplo.invalido/dunas/programa-leitura",
+    "data": "2026-08-29",
+    "titulo": "Programa de leitura de Vila Serena recebe reconhecimento estadual",
+    "resumo": "O programa municipal de leitura nas escolas recebeu reconhecimento do governo do estado em cerimônia realizada na capital. A iniciativa atende 3,4 mil estudantes do ensino fundamental em 22 unidades.",
+    "temas": [
+      "leitura",
+      "programa",
+      "estadual"
+    ],
+    "fonte_id": "not_016",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  },
+  "not_017": {
+    "item_id": "not_017",
+    "ator_id": "ator_001",
+    "janela": "2026-07",
+    "veiculo": "Rádio Farol AM",
+    "url": "https://exemplo.invalido/farol/prestacao-contas-julho",
+    "data": "2026-07-22",
+    "titulo": "Prestação de contas do transporte escolar tem inconsistência apontada",
+    "resumo": "O relatório de prestação de contas do transporte escolar do primeiro semestre teve inconsistência apontada pelo setor de controle interno da prefeitura. A prefeitura de Ariel Fontenele Dourado informou que abriu apuração e notificou a contratada.",
+    "temas": [
+      "apontada",
+      "contas",
+      "controle"
+    ],
+    "fonte_id": "not_017",
+    "modelo": "fake",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-08-19T19:50:30+00:00"
+  }
+}

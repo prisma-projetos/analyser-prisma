@@ -1,0 +1,81 @@
+{
+  "timestamp": "2026-08-19T19:50:30+00:00",
+  "rodada": "rodada_2.json",
+  "ator_id": "ator_001",
+  "modelo": "fake",
+  "lote": 5,
+  "prompts": {
+    "consolidacao_final.txt": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
+    "consolidacao_lote.txt": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
+    "formatos/compacto.txt": "8a9844de28f003204f1e3755dfc1e134d6b9beadf79f443c277948a806eaf23f",
+    "formatos/detalhado.txt": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "resumo_item.txt": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885"
+  },
+  "ids_entrada": [
+    "not_011",
+    "not_012",
+    "not_013",
+    "not_014",
+    "not_015",
+    "not_016",
+    "not_017",
+    "not_004"
+  ],
+  "ids_resumidos_agora": [
+    "not_011",
+    "not_012",
+    "not_013",
+    "not_014",
+    "not_015",
+    "not_016",
+    "not_017"
+  ],
+  "ids_do_cache": [
+    "not_004"
+  ],
+  "itens_reclassificados": [
+    "not_004"
+  ],
+  "janelas_recalculadas": [
+    "2026-07",
+    "2026-08"
+  ],
+  "panoramas_gravados": [
+    {
+      "janela": "2026-07",
+      "eixo": "negativo",
+      "versao": 1,
+      "lotes": 1
+    },
+    {
+      "janela": "2026-08",
+      "eixo": "negativo",
+      "versao": 2,
+      "lotes": 2
+    },
+    {
+      "janela": "2026-08",
+      "eixo": "positivo",
+      "versao": 2,
+      "lotes": 1
+    },
+    {
+      "janela": "2026-08",
+      "eixo": "neutro",
+      "versao": 2,
+      "lotes": 1
+    }
+  ],
+  "chamadas_por_tarefa": {
+    "resumo_item": 7,
+    "consolidacao_lote": 5,
+    "consolidacao_final": 4
+  },
+  "chamadas_total": 16,
+  "tokens": {
+    "prompt": 13681,
+    "resposta": 3800
+  },
+  "avisos_verificacao": [],
+  "erros": []
+}
