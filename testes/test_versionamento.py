@@ -68,14 +68,13 @@ def test_o_panorama_nunca_e_insumo_de_si_mesmo(tmp_path: Path) -> None:
     """A v2 é recalculada do zero, a partir dos resumos, não da v1.
 
     Se a v2 partisse da v1, o total de agosto no eixo negativo seria a soma acumulada.
-    Ele é a contagem dos resumos com rótulo vigente naquela janela — nem mais, nem menos.
+    Ele é a contagem dos resumos daquela classificação na janela — nem mais, nem menos.
     """
     modelo = ModeloFake()
     rodar(tmp_path, "rodada_1.json", modelo)
     rodar(tmp_path, "rodada_2.json", modelo)
 
     panoramas = ler_json(tmp_path / "panoramas.json")
-    rotulos = ler_json(tmp_path / "rotulos.json")
     resumos = ler_json(tmp_path / "resumos_item.json")
 
     v2 = next(
@@ -86,19 +85,19 @@ def test_o_panorama_nunca_e_insumo_de_si_mesmo(tmp_path: Path) -> None:
     esperado = {
         item_id
         for item_id, r in resumos.items()
-        if r["janela"] == "2026-08" and rotulos[item_id]["rotulo_atual"] == "negativo"
+        if r["janela"] == "2026-08" and r["rotulo"] == "negativo"
     }
     assert set(v2["panorama"]["fontes"]) == esperado
     assert v2["panorama"]["total_itens"] == len(esperado)
 
-    # not_004 saiu do eixo negativo ao ser reclassificado — e some da v2, sem sumir da v1.
+    # not_004 mantém a classificação definitiva e aparece nas duas versões.
     v1 = next(
         p
         for p in panoramas
         if p["janela"] == "2026-08" and p["eixo"] == "negativo" and p["versao"] == 1
     )
     assert "not_004" in v1["panorama"]["fontes"]
-    assert "not_004" not in v2["panorama"]["fontes"]
+    assert "not_004" in v2["panorama"]["fontes"]
 
 
 def test_resumo_existente_nunca_e_reescrito(tmp_path: Path) -> None:

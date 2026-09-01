@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 from conftest import montar_config
+from pydantic import ValidationError
 
 from analyser.modelos import (
     ErroDeValidacao,
@@ -33,11 +34,20 @@ class ModeloDesobediente:
         self.chamadas_por_tarefa: Counter[str] = Counter()
         self._respostas = respostas
         self.prompts_recebidos: list[str] = []
+        self.esquemas_recebidos: list[dict[str, Any] | None] = []
 
-    def gerar(self, *, prompt: str, contexto: dict[str, Any], tarefa: str) -> RespostaBruta:
+    def gerar(
+        self,
+        *,
+        prompt: str,
+        contexto: dict[str, Any],
+        tarefa: str,
+        esquema: dict[str, Any] | None = None,
+    ) -> RespostaBruta:
         self.chamadas += 1
         self.chamadas_por_tarefa[tarefa] += 1
         self.prompts_recebidos.append(prompt)
+        self.esquemas_recebidos.append(esquema)
         indice = min(self.chamadas - 1, len(self._respostas) - 1)
         return RespostaBruta(texto=self._respostas[indice])
 
@@ -100,15 +110,19 @@ def test_cerca_de_codigo_e_tolerada() -> None:
 
 
 def test_schema_unico_serve_aos_tres_eixos() -> None:
-    """Os campos não usados por um formato são opcionais, não obrigatórios.
+    """Os campos que VARIAM por formato são opcionais, não obrigatórios.
 
-    É o que permite ao frontend ter um contrato só para os três eixos.
+    É o que permite ao frontend ter um contrato só para os três eixos. `temas` fica de
+    fora dessa lista porque os dois fragmentos de formato o pedem — ele não varia.
     """
+    tema = {"tema": "obra parada", "ocorrencias": 1, "fontes": ["not_009"]}
+
     compacto = Panorama(
         ator_id="ator_001",
         janela="2026-08",
         eixo="neutro",
         total_itens=2,
+        temas=[tema],
         fontes=["not_009"],
         texto="Duas frases.",
     )
@@ -119,6 +133,7 @@ def test_schema_unico_serve_aos_tres_eixos() -> None:
         janela="2026-08",
         eixo="negativo",
         total_itens=2,
+        temas=[tema],
         fontes=["not_001"],
         fatos_mais_citados=[{"descricao": "algo", "fontes": ["not_001"]}],
     )
@@ -126,6 +141,23 @@ def test_schema_unico_serve_aos_tres_eixos() -> None:
 
     # Nenhum nome de campo sinaliza polaridade: os dois eixos usam o mesmo contrato.
     assert set(compacto.model_dump()) == set(detalhado.model_dump())
+
+
+def test_panorama_sem_temas_e_rejeitado() -> None:
+    """Nenhum formato dispensa temas, então o schema não pode dispensá-los.
+
+    Enquanto o campo teve default, a decodificação restrita o tratou como omissível e o
+    formato compacto devolveu panorama sem tema nenhum — sem que nada reclamasse.
+    """
+    with pytest.raises(ValidationError):
+        Panorama(
+            ator_id="ator_001",
+            janela="2026-08",
+            eixo="neutro",
+            total_itens=1,
+            fontes=["not_009"],
+            texto="Duas frases.",
+        )
 
 
 def test_falha_de_validacao_vira_erro_registrado_sem_gravar_nada(tmp_path: Path) -> None:
@@ -157,3 +189,66 @@ def test_o_fake_sempre_produz_saida_valida() -> None:
     )
     assert resumo.dados.fonte_id == "not_001"
     assert modelo.chamadas == 1
+
+
+def test_contagem_divergente_e_derivada_e_registrada() -> None:
+    """A contagem gravada vem da lista, e a divergência não desaparece.
+
+    `ocorrencias` e `total_itens` são o tamanho de listas que o modelo escreveu na mesma
+    resposta — não afirmações sobre a cobertura. São derivados em vez de perguntados,
+    mas toda substituição vira aviso, para que a auditoria continue mostrando que o
+    modelo discordou. Não é conserto silencioso: é conserto declarado.
+    """
+    panorama = Panorama(
+        ator_id="ator_001",
+        janela="2026-08",
+        eixo="negativo",
+        total_itens=99,
+        temas=[{"tema": "reforma da rodoviária", "ocorrencias": 3,
+                "fontes": ["not_005", "not_006"]}],
+        fontes=["not_005", "not_006"],
+    )
+
+    avisos = Analyser._normalizar_contagens(panorama)
+
+    assert panorama.temas[0].ocorrencias == 2
+    assert panorama.total_itens == 2
+    assert len(avisos) == 2
+    assert "gravado 2" in avisos[0]
+    assert "reforma da rodoviária" in avisos[0]
+
+
+def test_contagem_correta_nao_gera_aviso() -> None:
+    """Quando o modelo acerta, nada é registrado — o aviso só existe para divergência."""
+    panorama = Panorama(
+        ator_id="ator_001",
+        janela="2026-08",
+        eixo="neutro",
+        total_itens=2,
+        temas=[{"tema": "audiência pública", "ocorrencias": 2,
+                "fontes": ["not_009", "not_010"]}],
+        fontes=["not_009", "not_010"],
+        texto="Duas frases.",
+    )
+
+    assert Analyser._normalizar_contagens(panorama) == []
+
+
+def test_faixa_de_temas_acompanha_o_volume() -> None:
+    """A faixa cresce com o número de matérias, entre limites de legibilidade.
+
+    Uma faixa fixa não serve a um eixo que tem 2 matérias num mês e 60 em outro: no
+    primeiro caso ela fragmenta, no segundo mutila — e quando faltam vagas o modelo funde
+    assuntos distintos num rótulo composto em vez de descartar.
+    """
+    from analyser.config import faixa_de_temas
+
+    for materias in (1, 2, 5, 10, 20, 60, 100):
+        minimo, maximo = faixa_de_temas(materias)
+        assert 2 <= minimo, "nenhum panorama útil tem menos de dois temas"
+        assert maximo <= 12, "um panorama é lido por um cidadão, não é um índice"
+        assert maximo >= minimo + 2, "a faixa precisa dar folga de escolha ao modelo"
+
+    # Cresce: um eixo grande admite mais temas que um pequeno.
+    assert faixa_de_temas(60)[1] > faixa_de_temas(2)[1]
+    assert faixa_de_temas(60)[0] > faixa_de_temas(2)[0]

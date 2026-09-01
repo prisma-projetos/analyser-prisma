@@ -27,7 +27,7 @@ def test_segunda_rodada_so_resume_o_que_e_inedito(tmp_path: Path) -> None:
     segunda = rodar(tmp_path, "rodada_2.json", modelo)
 
     # A rodada 2 traz 8 itens, dos quais 7 são inéditos (6 de agosto e 1 de julho) e 1 já
-    # havia sido resumido na rodada 1, voltando apenas com o rótulo trocado.
+    # havia sido resumido na rodada 1, repetindo a mesma classificação definitiva.
     ineditos = [i for i in segunda.ids_entrada if i not in primeira.ids_entrada]
     assert len(ineditos) == 7
     assert segunda.ids_do_cache == ["not_004"]

@@ -47,10 +47,8 @@ def achados(texto: str, termos: tuple[str, ...]) -> list[str]:
 def test_map_nao_vaza_rotulo(prompts: Prompts, rodada_1: Rodada, rodada_2: Rodada) -> None:
     """O prompt do resumo por item, renderizado com dados reais, não menciona rótulo.
 
-    É desta metade que dependem duas propriedades que o resto do módulo assume: o resumo
-    continuar válido quando o item é reclassificado, e o resumo ser imparcial — no
-    sistema ele é exibido dentro do agrupamento em que a matéria caiu, e não pode assumir
-    o tom desse agrupamento.
+    O resumo precisa ser imparcial: no sistema ele é exibido dentro do agrupamento em que
+    a matéria foi classificada e não pode assumir o tom desse agrupamento.
     """
     itens = list(rodada_1.itens) + list(rodada_2.itens)
     assert itens, "o fixture precisa ter itens para o teste valer alguma coisa"
