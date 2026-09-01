@@ -20,6 +20,39 @@ TAREFA
 Agrupe os assuntos que aparecem em mais de uma matéria, conte quantas matérias sustentam
 cada um e liste os pontos que a cobertura registra.
 
+O QUE É UM TEMA
+Um assunto concreto tratado pelas matérias: um contrato, uma obra, um repasse, um
+serviço. De 1 a 4 palavras.
+
+- Consolide antes de listar. Se duas matérias tratam do mesmo assunto com palavras
+  diferentes, isso é UM tema com os dois ids — não dois temas.
+- Mas temas de uma MESMA matéria nunca se fundem entre si. Uma matéria trata de vários
+  assuntos, e cada um é um tema próprio com o id dela. O mesmo id em vários temas é o
+  esperado. Nome de tema com "e" ligando dois assuntos é sinal de fusão indevida.
+- `ocorrencias` é o tamanho da lista `fontes` daquele tema. Conte os ids que você mesmo
+  listou; não estime.
+- Não crie tema que nomeie o ator analisado, nem a prefeitura, nem a gestão. Todas as
+  matérias falam dele: por isso ele não distingue nada e não é um tema.
+- Prefira poucos temas bem sustentados a muitos temas de uma matéria só. Um assunto que
+  aparece em uma única matéria só merece entrar se for específico e substantivo.
+
+O QUE É UM PONTO
+Uma frase completa dizendo algo que a cobertura efetivamente registra, com o id ao final.
+Um ponto por fato, e cada fato em seu próprio item da lista.
+
+Escreva o fato, não o assunto do fato. Comparando:
+
+  ruim: "as matérias tratam de atraso na obra e troca de construtora (not_001)"
+  bom:  "A reforma do mercado está parada há cinco meses e a prefeitura atribuiu o
+         atraso à troca da empresa contratada (not_001)"
+
+O primeiro apenas recita nomes de temas e não informa nada a quem não leu as matérias.
+O segundo diz o que aconteceu, segundo quem, e pode ser lido sozinho.
+
+- Nunca emende vários fatos num item só separando por ponto-e-vírgula.
+- Quando a cobertura registra manifestação de alguém citado, isso entra no ponto.
+- Nenhum ponto sem id.
+
 RESUMOS DO LOTE
 {RESUMOS}
 

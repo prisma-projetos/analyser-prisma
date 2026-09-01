@@ -1,6 +1,6 @@
 Preencha os campos abaixo. Este fragmento define apenas a forma da resposta.
 
-- temas: de 2 a 4 entradas, ordenadas da maior para a menor contagem. Cada entrada tem o
+- temas: de {MIN_TEMAS} a {MAX_TEMAS} entradas, ordenadas da maior para a menor contagem. Cada entrada tem o
   nome do tema (1 a 4 palavras), o número de matérias distintas que o sustentam e a lista
   desses ids.
 - texto: de 2 a 3 frases descrevendo do que a cobertura do mês trata, com os ids entre

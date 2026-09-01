@@ -5,3 +5,5 @@ __pycache__/
 .pytest_tmp/
 .env
 
+saida_qwen/
+saida_comparacao/

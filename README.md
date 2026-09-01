@@ -58,7 +58,7 @@ Duas camadas, e a separação entre elas é o coração do módulo.
 
 | | `saida/resumos_item.json` | `saida/panoramas.json` |
 |---|---|---|
-| granularidade | um resumo por notícia | um registro por `(ator, janela, eixo, versão)` |
+| granularidade | um resumo + classificação definitiva por notícia | um registro por `(ator, janela, eixo, versão)` |
 | custo | **alto**, pago uma vez por notícia | baixo |
 | escrita | **append-only**, nunca recalculado | versão nova a cada recálculo |
 
@@ -66,9 +66,9 @@ A **janela** é o mês da notícia (`YYYY-MM`), derivado do campo `data` do item
 **notícia**, não a data em que ela chegou. Notícia de julho descoberta hoje pertence à
 janela de julho.
 
-Disso decorre a propriedade que o protótipo existe para demonstrar: quando o Classifier
-é corrigido e uma notícia é reclassificada, o panorama é recalculado, mas **a notícia não
-é re-resumida**.
+Disso decorre a propriedade que o protótipo existe para demonstrar: uma notícia inédita é
+resumida uma única vez; se o mesmo `item_id` reaparecer com a mesma classificação, o resumo
+é recuperado do cache. Uma classificação diferente para um id conhecido é erro de contrato.
 
 ---
 
@@ -91,9 +91,9 @@ fosse uma pessoa.
 
 1. **Resumo por item (map).** Já existe resumo? Pula, sem chamar o modelo. Senão, gera
    resumo de 2–3 frases + temas + id da fonte, e grava.
-2. **Marcação de janelas sujas.** Uma janela entra na fila de recálculo quando é tocada
-   por um item novo **ou** por um item cujo rótulo mudou.
-3. **Agrupamento.** Por rótulo vigente, em Python puro.
+2. **Marcação de janelas sujas.** Uma janela entra na fila de recálculo quando recebe um
+   item inédito.
+3. **Agrupamento.** Pela classificação definitiva gravada no resumo, em Python puro.
 4. **Consolidação em dois níveis (reduce).** Lotes de `--lote` (padrão 5) → parciais →
    panorama do eixo. A entrada são **sempre os resumos curtos**, nunca os textos completos
    e nunca um panorama anterior.
@@ -107,20 +107,21 @@ fosse uma pessoa.
 
 1. **O rótulo entra no prompt da consolidação, nunca no do resumo por item.** Constante
    única em [config.py](analyser/config.py): `ROTULO_NO_PROMPT = {"map": False, "reduce": True}`.
-   A função que monta o prompt do map nem recebe rótulo como parâmetro. Disso dependem
-   duas coisas: o resumo sobreviver a uma reclassificação, e o resumo ser **imparcial** —
-   no sistema ele é exibido dentro do agrupamento em que a matéria caiu, e não pode
-   assumir o tom desse agrupamento.
-2. **`resumos_item.json` é append-only.** `gravar_resumo()` levanta exceção se o id já
+   A função que monta o prompt do map nem recebe rótulo como parâmetro. Assim, o resumo é
+   **imparcial**: descreve a matéria sem assumir o tom do agrupamento.
+2. **A classificação é imutável.** O rótulo definitivo é salvo no registro do resumo. Se
+   um `item_id` conhecido reaparecer com outro rótulo, a rodada inteira é rejeitada antes
+   de qualquer escrita.
+3. **`resumos_item.json` é append-only.** `gravar_resumo()` levanta exceção se o id já
    existe, e não existe `atualizar_resumo` nem `apagar_resumo`.
-3. **O panorama nunca é insumo de si mesmo.** Consolidação parte sempre dos resumos.
-4. **Grounding estrito.** Os prompts proíbem conhecimento externo sobre o ator.
-5. **Rastreabilidade.** Toda afirmação referencia os ids que a sustentam.
-6. **A polaridade é da cobertura, não do ator.** Os textos dizem o que *as matérias*
+4. **O panorama nunca é insumo de si mesmo.** Consolidação parte sempre dos resumos.
+5. **Grounding estrito.** Os prompts proíbem conhecimento externo sobre o ator.
+6. **Rastreabilidade.** Toda afirmação referencia os ids que a sustentam.
+7. **A polaridade é da cobertura, não do ator.** Os textos dizem o que *as matérias*
    tratam; nunca julgam quem elas citam.
-7. **Saída estruturada obrigatória**, validada com Pydantic. Uma tentativa de reparo,
+8. **Saída estruturada obrigatória**, validada com Pydantic. Uma tentativa de reparo,
    depois erro registrado.
-8. **`temperature = 0`.**
+9. **`temperature = 0`.**
 
 ---
 
@@ -190,16 +191,21 @@ chamadas por tarefa, tokens e erros.
 
 ---
 
-## Um terceiro arquivo em `saida/`
+## Onde a classificação fica armazenada
 
-Além das duas camadas, existe `saida/rotulos.json`: o rótulo vigente de cada item, com
-histórico. Ele não é uma terceira camada de análise — é uma consequência das regras.
+Não existe mais `saida/rotulos.json`. O campo `rotulo` é gravado diretamente no registro
+imutável de cada notícia em `saida/resumos_item.json`, ao lado de `item_id`, `ator_id` e
+`janela`. A resposta textual do modelo (`ResumoItem`) continua sem receber o rótulo no
+prompt; o pipeline anexa a classificação somente ao montar o registro persistido.
 
-Detectar "o rótulo mudou" (etapa 2) exige lembrar o rótulo anterior, e a camada de resumos
-é append-only, então o rótulo **não pode** morar lá. É justamente ele que muda quando o
-classificador é corrigido. `rotulos.json` é a única coisa mutável do sistema, e essa é a
-separação que o módulo defende: o resumo (caro) é imutável, o rótulo (barato, propriedade
-do Classifier) é revisável.
+Quando um id conhecido reaparece, o Analyser compara o rótulo recebido com o que já está
+gravado. Valores iguais exercitam o cache normalmente. Valores diferentes levantam
+`ConflitoClassificacao` antes de qualquer resumo, panorama ou auditoria da nova rodada ser
+escrito. Assim, não existe atualização nem histórico de classificação.
+
+Uma saída criada pelo schema anterior, cujos resumos ainda não possuem `rotulo`, levanta
+`SaidaLegadaIncompativel`. O programa não escolhe automaticamente um valor de um antigo
+`rotulos.json`; é necessário migrar ou regenerar essa saída de forma explícita.
 
 ---
 
@@ -211,8 +217,8 @@ correspondem a nenhum jornal real.
 
 - **Rodada 1** — 10 itens, todos de agosto de 2026, rótulos desbalanceados (6/2/2).
 - **Rodada 2** — 8 itens: 6 novos de agosto, 1 novo de **julho** (prova que a janela vem
-  da data da notícia) e 1 item da rodada 1 **com o rótulo trocado** (prova que
-  reclassificar não obriga a re-resumir).
+  da data da notícia) e 1 item da rodada 1 com **o mesmo rótulo** (prova que uma repetição
+  coerente usa o cache).
 
 Plantados de propósito: um item rotulado negativo com texto equilibrado (`not_003`), um
 que menciona dois políticos sendo só um o alvo (`not_008`), uma nota protocolar sem
@@ -232,7 +238,7 @@ por dentro da notícia.
 | 1 | `test_vazamento_rotulo.py` | o prompt do map, com dados reais, não menciona rótulo |
 | 2 | `test_vazamento_rotulo.py` | o prompt do reduce nomeia o eixo mas não instrui tom |
 | 3 | `test_cache.py` | a rodada 2 só chama o modelo para os itens inéditos |
-| 4 | `test_reclassificacao.py` | o item reclassificado mantém o resumo e suja a janela |
+| 4 | `test_classificacao_imutavel.py` | repetição coerente usa cache e rótulo conflitante rejeita toda a rodada |
 | 5 | `test_versionamento.py` | agosto fica em v2, julho em v1, e a v1 continua íntegra |
 | 6 | `test_schemas.py` | saída malformada é rejeitada, com um retry e depois erro |
 
@@ -250,6 +256,35 @@ constar:
 
 Mitigações em vigor: o rótulo fica fora do map, o prompt do reduce não instrui tom, e o
 teste 2 cobra isso automaticamente.
+
+**As contagens são derivadas, não perguntadas.** Decidido em 31/08/2026, depois de rodar
+o pipeline contra um modelo real. `ocorrencias` e `total_itens` deixaram de ser aceitos como
+o modelo os declara: passam a vir de `len(set(fontes))`, sobre a lista que ele mesmo escreveu
+na mesma resposta. O que se perde, para constar:
+
+- A divergência entre o número declarado e a lista deixa de ser evidência sobre a atenção do
+  modelo naquela chamada. Ela vira aviso, mas o panorama gravado não a carrega mais.
+- Some um sinal barato de degradação: se um dia o modelo passar a errar contagem com muito
+  mais frequência, isso só aparecerá no volume de avisos, não na saída.
+
+O que se ganha: `ocorrencias` ordena os temas no painel, então um número inflado promovia um
+tema acima do que as matérias sustentam. Medido no Qwen3.5-9B, um tema declarou 3 ocorrências
+listando 2 fontes — e era justamente o tema que havia agrupado corretamente os dois veículos
+que cobriram o mesmo fato.
+
+Isto não contradiz "divergência vira aviso, não é corrigida em silêncio": toda substituição é
+registrada na auditoria. A distinção é o tipo de alegação. Conferir se um id citado existe no
+conjunto verifica uma afirmação sobre o **conteúdo**, e ali corrigir seria adulterar o que o
+modelo disse. Uma contagem sobre uma lista visível não é alegação — é aritmética que o
+pipeline já tem em mãos.
+
+**A classificação é definitiva.** Decidido em 31/08/2026. O rótulo passou a integrar o
+registro append-only da notícia e `rotulos.json` foi removido. O que se ganha é um contrato
+mais simples, sem estado mutável nem versões concorrentes da classificação. O que se perde é
+a capacidade de corrigir um rótulo dentro do Analyser: o mesmo `item_id` com valor diferente
+agora rejeita a rodada inteira. Caso o produto venha a admitir correções no futuro, será
+necessário definir explicitamente uma nova identidade ou um protocolo de revisão antes de
+reintroduzir esse comportamento.
 
 **Não há verificação do classificador.** Decidido em 19/08/2026. O Analyser confia no
 rótulo que recebe: agrupa por ele, consolida por ele e conta por ele, sem segunda opinião.

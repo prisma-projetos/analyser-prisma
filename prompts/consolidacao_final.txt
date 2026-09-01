@@ -18,6 +18,53 @@ RASTREABILIDADE
 - Um id só pode ser citado se aparece nas parciais recebidas. Não invente ids.
 - A contagem declarada em cada tema é o número de matérias distintas que o sustentam.
 
+CONTAGENS
+Todo número deste panorama é o tamanho de uma lista que você mesmo escreveu. Escreva a
+lista primeiro, depois conte os itens dela.
+
+- `ocorrencias` de um tema é quantos ids há na lista `fontes` daquele tema.
+- `total_itens` é quantos ids há na lista `fontes` do panorama — matérias distintas, não
+  temas, não fatos, não parciais recebidas.
+- Não some, não estime, não arredonde. Se a lista tem dois ids, o número é dois.
+
+TEMAS
+Consolidar é reunir o MESMO assunto vindo de MATÉRIAS DIFERENTES. Só isso.
+
+- Temas de uma mesma matéria nunca se fundem entre si. Uma matéria trata de vários
+  assuntos, e cada um deles é um tema com o id daquela matéria. O mesmo id aparecendo em
+  vários temas é o esperado, não um problema.
+- Fundir só faz sentido quando ids diferentes tratam do mesmo assunto. Aí é um tema com
+  todos os ids.
+- Um tema nomeia UM assunto. Nome com "e" ligando dois assuntos é sinal de fusão
+  indevida: separe em dois temas.
+
+Comparando, para uma matéria (not_004) que trata de três assuntos:
+
+  errado: {"tema": "troca de lâmpadas e advertência à contratada",
+           "ocorrencias": 3, "fontes": ["not_004"]}
+          — três assuntos num nome só, e um número que a lista de ids não sustenta
+
+  certo:  {"tema": "troca de lâmpadas",      "ocorrencias": 1, "fontes": ["not_004"]}
+          {"tema": "descumprimento de prazo","ocorrencias": 1, "fontes": ["not_004"]}
+          {"tema": "advertência à empresa",  "ocorrencias": 1, "fontes": ["not_004"]}
+          — cada assunto é um tema, e cada contagem é o tamanho da própria lista
+
+- Não crie tema que nomeie o ator analisado, nem a prefeitura, nem a gestão. Todas as
+  matérias falam dele, então ele não distingue nada.
+- Um tema é um assunto concreto: um contrato, uma obra, um repasse, um serviço.
+
+QUANDO HÁ MAIS ASSUNTOS QUE VAGAS
+A estrutura pedida abaixo limita quantos temas cabem, e é comum haver mais assuntos que
+isso. Nesse caso, ESCOLHA — não comprima.
+
+- Prefira os temas sustentados por mais matérias. Depois, os mais específicos.
+- Descarte o resto. Uma matéria pode não aparecer em tema nenhum, e isso é aceitável:
+  ela continua contada em `total_itens` e citada em `fontes`, e o texto ou os fatos
+  falam dela. A lista de temas mostra no que a cobertura converge, não um índice de
+  tudo o que foi publicado.
+- Nunca funda assuntos distintos só para caber. Deixar um assunto de fora é honesto;
+  juntar dois num rótulo que não descreve nenhum dos dois, não.
+
 COMO ESCREVER
 - O panorama descreve o que a COBERTURA diz, jamais julga o ator. Escreva "as matérias
   tratam majoritariamente de...", "o noticiário do mês registra...", nunca "o ator é...".

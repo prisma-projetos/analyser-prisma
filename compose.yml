@@ -1,0 +1,48 @@
+# Servidor de modelo para o Analyser.
+#
+# Isto NÃO faz parte do módulo: é infraestrutura externa, do outro lado da costura HTTP.
+# O Analyser fala com qualquer coisa que exponha a API da OpenAI, e é só isso que ele
+# sabe sobre este arquivo.
+#
+#   docker compose up -d
+#   docker compose exec modelo ollama pull qwen3.5:9b     # 5,68 GB, uma vez só
+#   docker compose exec modelo ollama ps                  # conferir o contexto efetivo
+
+services:
+  modelo:
+    image: ollama/ollama:latest
+    container_name: prisma-modelo
+    ports:
+      - "11434:11434"
+    volumes:
+      # Sem isto, os 5,68 GB do modelo são baixados de novo a cada recriação do
+      # container. O volume é o que torna `docker compose down` barato.
+      - ollama-models:/root/.ollama
+    environment:
+      # Obrigatório, não ajuste fino. O padrão do Ollama é 4096, e ele TRUNCA prompts
+      # maiores pela cabeça, sem avisar. Com 100 notícias num lote, o prompt do
+      # consolidacao_final chega a ~10.500 tokens — e como o prompt põe as regras no
+      # começo e os dados no fim, truncar pela cabeça apaga exatamente as regras de
+      # fidelidade e o fragmento de formato. A resposta ainda passaria na validação,
+      # porque todo campo específico de formato é opcional no schema Panorama.
+      OLLAMA_CONTEXT_LENGTH: "16384"
+      # Mantém o modelo carregado entre chamadas. Sem isto o Ollama descarrega após
+      # 5 minutos ociosos, e as 123 chamadas de um lote pagariam recargas no meio.
+      OLLAMA_KEEP_ALIVE: "30m"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  ollama-models:
