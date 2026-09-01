@@ -3,6 +3,7 @@
     "item_id": "not_001",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "negativo",
     "veiculo": "Jornal do Litoral",
     "url": "https://exemplo.invalido/litoral/mercado-parado",
     "data": "2026-08-03",
@@ -16,12 +17,13 @@
     "fonte_id": "not_001",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_002": {
     "item_id": "not_002",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "negativo",
     "veiculo": "Gazeta de Vila Serena",
     "url": "https://exemplo.invalido/gazeta/repasse-saude",
     "data": "2026-08-05",
@@ -35,12 +37,13 @@
     "fonte_id": "not_002",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_003": {
     "item_id": "not_003",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "negativo",
     "veiculo": "Portal Maré Alta",
     "url": "https://exemplo.invalido/mare/contrato-limpeza",
     "data": "2026-08-07",
@@ -54,12 +57,13 @@
     "fonte_id": "not_003",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_004": {
     "item_id": "not_004",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "negativo",
     "veiculo": "Rádio Farol AM",
     "url": "https://exemplo.invalido/farol/iluminacao-bairros",
     "data": "2026-08-09",
@@ -73,12 +77,13 @@
     "fonte_id": "not_004",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_005": {
     "item_id": "not_005",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "negativo",
     "veiculo": "Jornal do Litoral",
     "url": "https://exemplo.invalido/litoral/licitacao-anulada",
     "data": "2026-08-12",
@@ -92,12 +97,13 @@
     "fonte_id": "not_005",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_006": {
     "item_id": "not_006",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "negativo",
     "veiculo": "O Correio das Dunas",
     "url": "https://exemplo.invalido/dunas/rodoviaria-suspensa",
     "data": "2026-08-12",
@@ -111,12 +117,13 @@
     "fonte_id": "not_006",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_007": {
     "item_id": "not_007",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "positivo",
     "veiculo": "Diário do Contorno",
     "url": "https://exemplo.invalido/contorno/unidade-aroeira",
     "data": "2026-08-14",
@@ -130,12 +137,13 @@
     "fonte_id": "not_007",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_008": {
     "item_id": "not_008",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "positivo",
     "veiculo": "Agência Ponto Livre",
     "url": "https://exemplo.invalido/pontolivre/ponte-riacho",
     "data": "2026-08-17",
@@ -149,12 +157,13 @@
     "fonte_id": "not_008",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_009": {
     "item_id": "not_009",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "neutro",
     "veiculo": "Gazeta de Vila Serena",
     "url": "https://exemplo.invalido/gazeta/audiencia-ldo",
     "data": "2026-08-19",
@@ -168,12 +177,13 @@
     "fonte_id": "not_009",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_010": {
     "item_id": "not_010",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "neutro",
     "veiculo": "Portal Maré Alta",
     "url": "https://exemplo.invalido/mare/calendario-escolar",
     "data": "2026-08-21",
@@ -187,12 +197,13 @@
     "fonte_id": "not_010",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_011": {
     "item_id": "not_011",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "negativo",
     "veiculo": "Gazeta de Vila Serena",
     "url": "https://exemplo.invalido/gazeta/merenda-escolar",
     "data": "2026-08-24",
@@ -206,12 +217,13 @@
     "fonte_id": "not_011",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_012": {
     "item_id": "not_012",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "positivo",
     "veiculo": "Diário do Contorno",
     "url": "https://exemplo.invalido/contorno/creche-canabrava",
     "data": "2026-08-25",
@@ -225,12 +237,13 @@
     "fonte_id": "not_012",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_013": {
     "item_id": "not_013",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "neutro",
     "veiculo": "Agência Ponto Livre",
     "url": "https://exemplo.invalido/pontolivre/nota-agenda",
     "data": "2026-08-26",
@@ -244,12 +257,13 @@
     "fonte_id": "not_013",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_014": {
     "item_id": "not_014",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "negativo",
     "veiculo": "Jornal do Litoral",
     "url": "https://exemplo.invalido/litoral/aditivo-pavimentacao",
     "data": "2026-08-27",
@@ -263,12 +277,13 @@
     "fonte_id": "not_014",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_015": {
     "item_id": "not_015",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "neutro",
     "veiculo": "Portal Maré Alta",
     "url": "https://exemplo.invalido/mare/concurso-inscricoes",
     "data": "2026-08-28",
@@ -282,12 +297,13 @@
     "fonte_id": "not_015",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_016": {
     "item_id": "not_016",
     "ator_id": "ator_001",
     "janela": "2026-08",
+    "rotulo": "positivo",
     "veiculo": "O Correio das Dunas",
     "url": "https://exemplo.invalido/dunas/programa-leitura",
     "data": "2026-08-29",
@@ -301,12 +317,13 @@
     "fonte_id": "not_016",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   "not_017": {
     "item_id": "not_017",
     "ator_id": "ator_001",
     "janela": "2026-07",
+    "rotulo": "negativo",
     "veiculo": "Rádio Farol AM",
     "url": "https://exemplo.invalido/farol/prestacao-contas-julho",
     "data": "2026-07-22",
@@ -320,6 +337,6 @@
     "fonte_id": "not_017",
     "modelo": "fake",
     "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   }
 }

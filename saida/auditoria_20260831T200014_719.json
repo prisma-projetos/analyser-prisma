@@ -1,14 +1,14 @@
 {
-  "timestamp": "2026-08-19T19:50:30+00:00",
+  "timestamp": "2026-08-31T20:00:14+00:00",
   "rodada": "rodada_2.json",
   "ator_id": "ator_001",
   "modelo": "fake",
   "lote": 5,
   "prompts": {
-    "consolidacao_final.txt": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
-    "consolidacao_lote.txt": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
-    "formatos/compacto.txt": "8a9844de28f003204f1e3755dfc1e134d6b9beadf79f443c277948a806eaf23f",
-    "formatos/detalhado.txt": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "consolidacao_final.txt": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "consolidacao_lote.txt": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "formatos/compacto.txt": "fba9e89172e9414b7b4769d422d673f3aa2c2b0fa4e49f70c6b2b87f99739abc",
+    "formatos/detalhado.txt": "e8c5af98ffdefb22048177faaa10daf4ccab75fff309ca5a99aa74693ebd43c7",
     "resumo_item.txt": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885"
   },
   "ids_entrada": [
@@ -31,9 +31,6 @@
     "not_017"
   ],
   "ids_do_cache": [
-    "not_004"
-  ],
-  "itens_reclassificados": [
     "not_004"
   ],
   "janelas_recalculadas": [
@@ -73,8 +70,8 @@
   },
   "chamadas_total": 16,
   "tokens": {
-    "prompt": 13681,
-    "resposta": 3800
+    "prompt": 18527,
+    "resposta": 3801
   },
   "avisos_verificacao": [],
   "erros": []

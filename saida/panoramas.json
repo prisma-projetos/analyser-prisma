@@ -120,11 +120,11 @@
     "avisos": [],
     "lotes": 2,
     "modelo": "fake",
-    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
-    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
-    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "e8c5af98ffdefb22048177faaa10daf4ccab75fff309ca5a99aa74693ebd43c7",
     "rodada": "rodada_1.json",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   {
     "ator_id": "ator_001",
@@ -220,11 +220,11 @@
     "avisos": [],
     "lotes": 1,
     "modelo": "fake",
-    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
-    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
-    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "e8c5af98ffdefb22048177faaa10daf4ccab75fff309ca5a99aa74693ebd43c7",
     "rodada": "rodada_1.json",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   {
     "ator_id": "ator_001",
@@ -278,11 +278,11 @@
     "avisos": [],
     "lotes": 1,
     "modelo": "fake",
-    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
-    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
-    "hash_prompt_formato": "8a9844de28f003204f1e3755dfc1e134d6b9beadf79f443c277948a806eaf23f",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "fba9e89172e9414b7b4769d422d673f3aa2c2b0fa4e49f70c6b2b87f99739abc",
     "rodada": "rodada_1.json",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   {
     "ator_id": "ator_001",
@@ -343,11 +343,11 @@
     "avisos": [],
     "lotes": 1,
     "modelo": "fake",
-    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
-    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
-    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "e8c5af98ffdefb22048177faaa10daf4ccab75fff309ca5a99aa74693ebd43c7",
     "rodada": "rodada_2.json",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   {
     "ator_id": "ator_001",
@@ -359,7 +359,7 @@
       "ator_id": "ator_001",
       "janela": "2026-08",
       "eixo": "negativo",
-      "total_itens": 7,
+      "total_itens": 8,
       "temas": [
         {
           "tema": "contrato",
@@ -410,6 +410,7 @@
         "not_001",
         "not_002",
         "not_003",
+        "not_004",
         "not_005",
         "not_006",
         "not_011",
@@ -436,15 +437,15 @@
           ]
         },
         {
-          "descricao": "O tribunal de contas do estado determinou a suspensão da licitação para a reforma da rodoviária de Vila Serena do Norte.",
+          "descricao": "Moradores de quatro bairros cobraram nesta semana a troca de lâmpadas prometida pela prefeitura para julho.",
           "fontes": [
-            "not_005"
+            "not_004"
           ]
         },
         {
-          "descricao": "A licitação da reforma da rodoviária municipal foi suspensa por determinação do tribunal de contas do estado, publicada na noite de terça-feira.",
+          "descricao": "O tribunal de contas do estado determinou a suspensão da licitação para a reforma da rodoviária de Vila Serena do Norte.",
           "fontes": [
-            "not_006"
+            "not_005"
           ]
         }
       ],
@@ -464,6 +465,7 @@
           "fontes": [
             "not_001",
             "not_003",
+            "not_004",
             "not_006",
             "not_011"
           ]
@@ -473,11 +475,11 @@
     "avisos": [],
     "lotes": 2,
     "modelo": "fake",
-    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
-    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
-    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "e8c5af98ffdefb22048177faaa10daf4ccab75fff309ca5a99aa74693ebd43c7",
     "rodada": "rodada_2.json",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   {
     "ator_id": "ator_001",
@@ -589,11 +591,11 @@
     "avisos": [],
     "lotes": 1,
     "modelo": "fake",
-    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
-    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
-    "hash_prompt_formato": "b88f3a668f3d6fa691816bd16244fe3e9baf9820318edad6cbe3d14be03c999d",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "e8c5af98ffdefb22048177faaa10daf4ccab75fff309ca5a99aa74693ebd43c7",
     "rodada": "rodada_2.json",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   },
   {
     "ator_id": "ator_001",
@@ -605,7 +607,7 @@
       "ator_id": "ator_001",
       "janela": "2026-08",
       "eixo": "neutro",
-      "total_itens": 5,
+      "total_itens": 4,
       "temas": [
         {
           "tema": "ajuste",
@@ -637,23 +639,22 @@
         }
       ],
       "fontes": [
-        "not_004",
         "not_009",
         "not_010",
         "not_013",
         "not_015"
       ],
-      "texto": "A cobertura do período reúne 5 matérias sobre o alvo (not_004, not_009, not_010, not_013, not_015). Os assuntos mais frequentes são ajuste, audiência. As matérias descrevem os fatos sem que os veículos registrem contestação.",
+      "texto": "A cobertura do período reúne 4 matérias sobre o alvo (not_009, not_010, not_013, not_015). Os assuntos mais frequentes são ajuste, audiência. As matérias descrevem os fatos sem que os veículos registrem contestação.",
       "fatos_mais_citados": [],
       "respostas_registradas": []
     },
     "avisos": [],
     "lotes": 1,
     "modelo": "fake",
-    "hash_prompt_lote": "1b5c2d2e05ef5380198e56c36277ae65d3b1251664ebb914223fa153a5440cf6",
-    "hash_prompt_final": "6a42bbad59873daa90c12bdddb244a3dd0e4f458f6bd0f7aa56441755e8070ea",
-    "hash_prompt_formato": "8a9844de28f003204f1e3755dfc1e134d6b9beadf79f443c277948a806eaf23f",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "fba9e89172e9414b7b4769d422d673f3aa2c2b0fa4e49f70c6b2b87f99739abc",
     "rodada": "rodada_2.json",
-    "criado_em": "2026-08-19T19:50:30+00:00"
+    "criado_em": "2026-08-31T20:00:14+00:00"
   }
 ]
