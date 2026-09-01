@@ -12,9 +12,10 @@ import argparse
 import sys
 from pathlib import Path
 
+from analyser.armazenamento import SaidaLegadaIncompativel
 from analyser.config import LOTE_PADRAO, Config, carregar_dotenv
-from analyser.modelos import Modelo, ModeloAPI, ModeloFake
-from analyser.pipeline import Analyser
+from analyser.modelos import ErroDeResposta, Modelo, ModeloAPI, ModeloFake
+from analyser.pipeline import Analyser, ConflitoClassificacao
 from analyser.saida import console, imprimir
 
 
@@ -58,6 +59,27 @@ def construir_modelo(escolha: str) -> Modelo:
     return ModeloAPI()
 
 
+def preflight(modelo: Modelo) -> None:
+    """Uma chamada mínima antes da rodada inteira.
+
+    Uma configuração errada — modelo que raciocina, teto de tokens curto, campo que o
+    provedor recusa — falha igual na primeira e na centésima chamada. Descobrir isso
+    com uma chamada em vez de com o lote todo é a diferença entre perder um segundo e
+    perder a cota inteira sem produzir nada.
+
+    Os contadores são zerados depois, para que esta chamada não apareça na auditoria
+    como trabalho da rodada.
+    """
+    modelo.gerar(
+        prompt='Responda apenas com este objeto JSON, sem mais nada: {"ok": true}',
+        contexto={"item_id": "preflight", "titulo": "", "texto": ""},
+        tarefa="resumo_item",
+    )
+    zerar = getattr(modelo, "zerar_contadores", None)
+    if callable(zerar):
+        zerar()
+
+
 def main(argv: list[str] | None = None) -> int:
     """Executa uma rodada e imprime o resultado."""
     args = montar_parser().parse_args(argv)
@@ -80,7 +102,29 @@ def main(argv: list[str] | None = None) -> int:
         console.print(f"[red]{erro}[/red]")
         return 2
 
-    resultado = Analyser(config, modelo).executar()
+    if args.modelo == "api":
+        try:
+            preflight(modelo)
+        except ErroDeResposta as erro:
+            console.print(f"[red]A verificação inicial falhou:[/red] {erro}")
+            console.print("[yellow]Nada foi processado.[/yellow]")
+            return 2
+
+    try:
+        resultado = Analyser(config, modelo).executar()
+    except SaidaLegadaIncompativel as erro:
+        console.print(f"[red]Saída incompatível:[/red] {erro}")
+        console.print("[yellow]Nenhum dado legado foi alterado automaticamente.[/yellow]")
+        return 2
+    except ConflitoClassificacao as erro:
+        console.print(f"[red]Rodada rejeitada:[/red] {erro}")
+        console.print("[yellow]Nada desta rodada foi processado.[/yellow]")
+        return 2
+    except ErroDeResposta as erro:
+        # Problema de configuração, não do item: insistir só gasta cota.
+        console.print(f"[red]Execução interrompida:[/red] {erro}")
+        return 2
+
     imprimir(resultado, config)
     return 1 if resultado.erros else 0
 

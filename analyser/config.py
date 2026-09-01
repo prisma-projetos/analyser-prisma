@@ -25,13 +25,8 @@ TipoAtor = Literal["politico", "partido"]
 EIXOS: Final[tuple[Eixo, ...]] = ("negativo", "positivo", "neutro")
 
 #: Regra 1. O rótulo do classificador entra no prompt da consolidação (reduce) e NUNCA no
-#: prompt do resumo por item (map). É desta metade `map` que dependem duas propriedades:
-#:
-#: 1. O `resumo_item` continua válido quando o item é reclassificado — senão cada correção
-#:    do Classifier obrigaria a re-resumir a notícia inteira.
-#: 2. O resumo é IMPARCIAL. No sistema, o cidadão navega pelos agrupamentos e lê o resumo
-#:    dentro daquele em que a matéria caiu. O resumo não pode assumir o tom do agrupamento
-#:    que o hospeda: ele descreve a matéria, e é o agrupamento que diz onde ela está.
+#: prompt do resumo por item (map). Isso mantém o resumo IMPARCIAL: ele descreve a matéria,
+#: enquanto o agrupamento informa em qual eixo ela foi classificada.
 ROTULO_NO_PROMPT: Final[dict[str, bool]] = {"map": False, "reduce": True}
 
 #: Mapa eixo -> formato de saída. Os arquivos de prompt são nomeados pelo FORMATO, nunca
@@ -50,9 +45,49 @@ TEMPERATURA: Final[float] = 0.0
 #: registrado — nunca um conserto silencioso.
 MAX_TENTATIVAS: Final[int] = 2
 
+#: Teto de tokens de resposta por tarefa.
+#:
+#: Isto NÃO é conhecimento sobre o provedor: deriva dos schemas e dos fragmentos de
+#: formato deste módulo — é o tamanho que a NOSSA saída pode ter. Medido: `resumo_item`
+#: gastou 134 tokens numa chamada real; um `consolidacao_final` no formato detalhado
+#: ocupa 419 tokens com 7 itens e estima ~835 com 60. Os tetos abaixo deixam 3 a 4 vezes
+#: de folga.
+#:
+#: Sem teto, um modelo que raciocina gasta o orçamento inteiro pensando e devolve
+#: conteúdo vazio; com teto curto demais, o JSON chega truncado. As duas situações são
+#: detectadas em `ModeloAPI.gerar` e interrompem a execução em vez de virar retry.
+#: Os valores são folgados de propósito. Um teto não é uma meta: o modelo para sozinho
+#: quando termina, e uma chamada que gastou 129 tokens custa o mesmo com teto de 500 ou
+#: de 3000. O que o teto precisa cobrir é o pior caso — e o pior caso é um modelo que
+#: RACIOCINA, porque a deliberação sai do mesmo orçamento da resposta. Com o raciocínio
+#: ligado, um teto dimensionado só para a resposta faz o modelo gastar tudo pensando e
+#: devolver conteúdo vazio, que é como esta constante nasceu.
+MAX_TOKENS_POR_TAREFA: Final[dict[str, int]] = {
+    "resumo_item": 3000,
+    "consolidacao_lote": 14000,
+    "consolidacao_final": 13000,
+}
+
 #: Tamanho padrão do lote no primeiro nível do reduce. Pequeno de propósito, para que os
 #: dois níveis de consolidação sejam exercitados já com poucos itens.
 LOTE_PADRAO: Final[int] = 5
+
+
+def faixa_de_temas(materias: int) -> tuple[int, int]:
+    """Quantos temas um panorama deve ter, dado quantas matérias ele consolida.
+
+    Uma faixa fixa não serve a um módulo cujo eixo pode ter 2 matérias num mês e 60 em
+    outro. Medido: com o mínimo em 5, um eixo de 2 matérias produziu 8 temas, quase todos
+    de uma fonte só — fragmentação. Com o máximo em 6, um eixo de 60 matérias caberia em
+    6 temas — mutilação. Pior: quando faltam vagas, o modelo funde assuntos distintos num
+    rótulo composto em vez de descartar, o que estraga o nome e a contagem de uma vez.
+
+    A faixa acompanha o volume, entre limites que preservam a legibilidade: um panorama
+    é lido por um cidadão, não é um índice.
+    """
+    minimo = max(2, min(8, round(materias / 4)))
+    maximo = max(minimo + 2, min(12, round(materias / 1.2)))
+    return minimo, maximo
 
 
 # --------------------------------------------------------------------------------------
@@ -116,15 +151,6 @@ class Config:
     def arquivo_panoramas(self) -> Path:
         """Camada recalculável: uma versão nova a cada recálculo, nada sobrescrito."""
         return self.saida / "panoramas.json"
-
-    @property
-    def arquivo_rotulos(self) -> Path:
-        """Registro do rótulo vigente por item — a única camada mutável do sistema.
-
-        Existe porque detectar "o rótulo mudou" exige lembrar o rótulo anterior, e a
-        camada de resumos é append-only: o rótulo não pode morar lá.
-        """
-        return self.saida / "rotulos.json"
 
     def arquivo_auditoria(self, carimbo: str) -> Path:
         """Um registro de auditoria por execução."""

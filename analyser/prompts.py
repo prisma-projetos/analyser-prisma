@@ -11,7 +11,7 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from analyser.config import FORMATO_POR_EIXO, ROTULO_NO_PROMPT, Eixo
+from analyser.config import FORMATO_POR_EIXO, ROTULO_NO_PROMPT, Eixo, faixa_de_temas
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,9 +89,8 @@ class Prompts:
         """Monta o prompt do resumo por item.
 
         Regra 1: o rótulo do classificador NÃO entra aqui. A função sequer recebe o
-        rótulo como parâmetro — não há como vazá-lo por descuido. É isso que mantém o
-        resumo imparcial mesmo sendo exibido dentro de um agrupamento de polaridade, e é
-        isso que faz o resumo sobreviver a uma reclassificação.
+        rótulo como parâmetro — não há como vazá-lo por descuido. Isso mantém o resumo
+        imparcial mesmo sendo exibido dentro de um agrupamento de classificação.
         """
         assert ROTULO_NO_PROMPT["map"] is False, "O map não pode receber o rótulo."
         base = self.carregar("resumo_item.txt")
@@ -127,7 +126,12 @@ class Prompts:
         return f"formatos/{FORMATO_POR_EIXO[eixo]}.txt"
 
     def instrucoes_finais(
-        self, *, eixo: Eixo, ator_id: str = "{ATOR_ID}", janela: str = "{JANELA}"
+        self,
+        *,
+        eixo: Eixo,
+        ator_id: str = "{ATOR_ID}",
+        janela: str = "{JANELA}",
+        materias: int | None = None,
     ) -> PromptCarregado:
         """Monta a parte de INSTRUÇÕES do prompt final: base única + fragmento de formato.
 
@@ -145,13 +149,23 @@ class Prompts:
             .replace("{ATOR_ID}", ator_id)
             .replace("{JANELA}", janela)
         )
+        # A faixa de temas acompanha o volume de matérias: uma faixa fixa fragmenta um
+        # eixo pequeno e mutila um grande. Sem o número, os marcadores ficam à vista —
+        # é o que o teste 2 inspeciona, e ali não há rodada nenhuma para contar.
+        if materias is not None:
+            minimo, maximo = faixa_de_temas(materias)
+            rendido = rendido.replace("{MIN_TEMAS}", str(minimo)).replace(
+                "{MAX_TEMAS}", str(maximo)
+            )
         return PromptCarregado(nome=base.nome, texto=rendido, sha256=base.sha256)
 
     def montar_consolidacao_final(
-        self, *, eixo: Eixo, ator_id: str, janela: str, parciais: str
+        self, *, eixo: Eixo, ator_id: str, janela: str, parciais: str, materias: int
     ) -> PromptCarregado:
         """Monta o prompt final completo: instruções + dados das parciais."""
-        instrucoes = self.instrucoes_finais(eixo=eixo, ator_id=ator_id, janela=janela)
+        instrucoes = self.instrucoes_finais(
+            eixo=eixo, ator_id=ator_id, janela=janela, materias=materias
+        )
         rendido = instrucoes.texto.replace("{PARCIAIS}", parciais)
         return PromptCarregado(nome=instrucoes.nome, texto=rendido, sha256=instrucoes.sha256)
 

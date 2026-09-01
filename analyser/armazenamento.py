@@ -1,15 +1,12 @@
 """Persistência em JSON. Os arquivos de `saida/` fazem o papel do banco, de propósito.
 
-Duas camadas, e a separação entre elas é o coração do módulo:
+Duas camadas, e a separação entre elas organiza o módulo:
 
 * `resumos_item.json` — imutável, append-only. É aqui que mora o custo, pago uma vez por
-  notícia. Não existe função de atualizar nem de apagar: a regra 2 é imposta pelo código.
+  notícia. O registro também guarda a classificação definitiva recebida do Classifier.
+  Não existe função de atualizar nem de apagar: a regra é imposta pelo código.
 * `panoramas.json` — recalculável. Cada recálculo acrescenta uma versão nova; as
   anteriores nunca são sobrescritas nem apagadas.
-
-`rotulos.json` acompanha as duas: é a única coisa mutável do sistema. Existe porque
-detectar "o rótulo mudou" exige lembrar o rótulo anterior, e o rótulo não pode morar na
-camada append-only, já que é justamente ele que muda quando o Classifier é corrigido.
 """
 
 from __future__ import annotations
@@ -20,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from analyser.config import Config, Eixo
-from analyser.schemas import RegistroPanorama, RegistroResumo, RegistroRotulo
+from analyser.schemas import RegistroPanorama, RegistroResumo
 
 
 class ViolacaoAppendOnly(RuntimeError):
@@ -28,6 +25,10 @@ class ViolacaoAppendOnly(RuntimeError):
 
     Não é um detalhe defensivo: é a regra 2 se defendendo sozinha.
     """
+
+
+class SaidaLegadaIncompativel(RuntimeError):
+    """A saída anterior não possui a classificação definitiva no resumo."""
 
 
 def agora_iso() -> str:
@@ -76,6 +77,18 @@ class Armazenamento:
     def ler_resumos(self) -> dict[str, RegistroResumo]:
         """Todos os resumos já gravados, indexados pelo id do item."""
         cru: dict[str, Any] = _ler_json(self.config.arquivo_resumos, {})
+        legados = [
+            item_id
+            for item_id, registro in cru.items()
+            if isinstance(registro, dict) and "rotulo" not in registro
+        ]
+        if legados:
+            amostra = ", ".join(sorted(legados)[:5])
+            raise SaidaLegadaIncompativel(
+                f"{self.config.arquivo_resumos} usa o formato anterior, sem o campo "
+                f"'rotulo' ({len(legados)} registro(s); exemplo: {amostra}). Migre ou "
+                "regenere essa saída antes de usá-la com a classificação imutável."
+            )
         return {item_id: RegistroResumo.model_validate(v) for item_id, v in cru.items()}
 
     def gravar_resumo(self, registro: RegistroResumo) -> None:
@@ -92,35 +105,6 @@ class Armazenamento:
             )
         cru[registro.item_id] = registro.model_dump(mode="json")
         _escrever_json(self.config.arquivo_resumos, cru)
-
-    # ----------------------------------------------------------------------------------
-    # Camada mutável — rótulo vigente por item
-    # ----------------------------------------------------------------------------------
-
-    def ler_rotulos(self) -> dict[str, RegistroRotulo]:
-        """Rótulo vigente de cada item conhecido, com histórico."""
-        cru: dict[str, Any] = _ler_json(self.config.arquivo_rotulos, {})
-        return {item_id: RegistroRotulo.model_validate(v) for item_id, v in cru.items()}
-
-    def registrar_rotulo(self, item_id: str, rotulo: Eixo, rodada: str) -> bool:
-        """Registra o rótulo vigente de um item. Devolve True se ele MUDOU.
-
-        Um item inédito não conta como mudança de rótulo — ele já entra como novo, e a
-        etapa 2 trata os dois casos separadamente.
-        """
-        cru: dict[str, Any] = _ler_json(self.config.arquivo_rotulos, {})
-        anterior = cru.get(item_id)
-        mudou = anterior is not None and anterior["rotulo_atual"] != rotulo
-
-        historico = list(anterior["historico"]) if anterior else []
-        if anterior is None or mudou:
-            historico.append({"rotulo": rotulo, "rodada": rodada, "em": agora_iso()})
-
-        cru[item_id] = RegistroRotulo(
-            item_id=item_id, rotulo_atual=rotulo, historico=historico
-        ).model_dump(mode="json")
-        _escrever_json(self.config.arquivo_rotulos, cru)
-        return mudou
 
     # ----------------------------------------------------------------------------------
     # Camada recalculável — panoramas versionados

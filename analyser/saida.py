@@ -67,12 +67,6 @@ def _economia(resultado: ResultadoExecucao) -> None:
     linha.append(" resumidos agora")
     if do_cache:
         linha.append(f"\n          reaproveitados: {', '.join(resultado.ids_do_cache)}", style="dim")
-    if resultado.itens_reclassificados:
-        linha.append(
-            f"\n          reclassificados: {', '.join(resultado.itens_reclassificados)}"
-            " (rótulo mudou, resumo preservado)",
-            style="dim",
-        )
     console.print(linha)
     console.print()
 
@@ -80,17 +74,14 @@ def _economia(resultado: ResultadoExecucao) -> None:
 def _janelas(resultado: ResultadoExecucao) -> None:
     console.print("[bold]Janelas marcadas como sujas e recalculadas[/bold]")
     if not resultado.janelas_sujas:
-        console.print("  [dim]nenhuma — nada novo e nenhum rótulo alterado[/dim]\n")
+        console.print("  [dim]nenhuma — nenhuma notícia inédita[/dim]\n")
         return
     for janela in resultado.janelas_sujas:
         motivos = resultado.motivo_janela.get(janela, [])
         novos = [m.split(" ")[0] for m in motivos if "item novo" in m]
-        alterados = [m.split(" ")[0] for m in motivos if "rótulo alterado" in m]
         partes: list[str] = []
         if novos:
             partes.append(f"{len(novos)} item(ns) novo(s): {', '.join(novos)}")
-        if alterados:
-            partes.append(f"{len(alterados)} com rótulo alterado: {', '.join(alterados)}")
         console.print(f"  [bold]{janela}[/bold]  ←  " + "  ·  ".join(partes))
     console.print()
 

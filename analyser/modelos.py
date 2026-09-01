@@ -20,7 +20,7 @@ from typing import Any, Generic, Protocol, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from analyser.config import MAX_TENTATIVAS, TEMPERATURA
+from analyser.config import MAX_TENTATIVAS, MAX_TOKENS_POR_TAREFA, TEMPERATURA
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -40,6 +40,18 @@ class ErroDeValidacao(RuntimeError):
     """
 
 
+class ErroDeResposta(RuntimeError):
+    """A resposta veio inutilizável por CONFIGURAÇÃO, não por prompt ruim.
+
+    Distinta de `ErroDeValidacao` de propósito. Aquela é um problema daquele item: o
+    pipeline registra e segue, porque a próxima notícia pode dar certo. Esta é um
+    problema da execução inteira — conteúdo vazio porque o modelo raciocina, ou JSON
+    cortado porque o teto de tokens é curto. Repetir não conserta nenhuma das duas, só
+    gasta chamada, então o pipeline deixa esta subir e a execução para na primeira
+    ocorrência.
+    """
+
+
 class Modelo(Protocol):
     """Contrato mínimo que o pipeline exige de um modelo."""
 
@@ -47,8 +59,20 @@ class Modelo(Protocol):
     chamadas: int
     chamadas_por_tarefa: Counter[str]
 
-    def gerar(self, *, prompt: str, contexto: dict[str, Any], tarefa: str) -> RespostaBruta:
-        """Gera texto para uma tarefa. `contexto` traz os dados já estruturados."""
+    def gerar(
+        self,
+        *,
+        prompt: str,
+        contexto: dict[str, Any],
+        tarefa: str,
+        esquema: dict[str, Any] | None = None,
+    ) -> RespostaBruta:
+        """Gera texto para uma tarefa. `contexto` traz os dados já estruturados.
+
+        `esquema` é o JSON Schema da resposta esperada. Uma implementação pode usá-lo
+        para restringir a decodificação, ou ignorá-lo — a validação com Pydantic
+        acontece de qualquer forma, depois.
+        """
         ...
 
 
@@ -130,8 +154,18 @@ class ModeloFake:
         self.chamadas = 0
         self.chamadas_por_tarefa = Counter()
 
-    def gerar(self, *, prompt: str, contexto: dict[str, Any], tarefa: str) -> RespostaBruta:
-        """Despacha para o gerador da tarefa e contabiliza a chamada."""
+    def gerar(
+        self,
+        *,
+        prompt: str,
+        contexto: dict[str, Any],
+        tarefa: str,
+        esquema: dict[str, Any] | None = None,
+    ) -> RespostaBruta:
+        """Despacha para o gerador da tarefa e contabiliza a chamada.
+
+        Ignora `esquema`: o fake já constrói a saída a partir do schema, por construção.
+        """
         self.chamadas += 1
         self.chamadas_por_tarefa[tarefa] += 1
         geradores = {
@@ -298,8 +332,13 @@ def _respostas(parciais: list[dict[str, Any]]) -> list[dict[str, Any]]:
 class ModeloAPI:
     """Cliente para API compatível com a da OpenAI.
 
-    Lê `BASE_URL`, `API_KEY` e `MODEL` do ambiente. O nome do modelo não existe no
-    código: trocar de provedor é editar o `.env`.
+    Lê `BASE_URL`, `API_KEY`, `MODEL` e `EXTRA_BODY` do ambiente. O nome do modelo não
+    existe no código: trocar de provedor é editar o `.env`.
+
+    `EXTRA_BODY` é um JSON repassado ao corpo da requisição sem interpretação. É por
+    onde passam as particularidades de cada provedor — desligar o raciocínio de um
+    modelo que raciocina, por exemplo — sem que este arquivo precise conhecer nenhuma
+    delas.
     """
 
     def __init__(self) -> None:
@@ -321,12 +360,57 @@ class ModeloAPI:
                 "Sem isso, use o padrão --modelo fake, que não exige nenhuma chave."
             )
 
+        def ler_json(nome: str) -> dict[str, Any]:
+            bruto = os.environ.get(nome, "").strip() or "{}"
+            try:
+                valor = json.loads(bruto)
+            except json.JSONDecodeError as erro:
+                raise RuntimeError(
+                    f"{nome} não é um JSON válido: {erro}. Valor lido: {bruto[:120]}"
+                ) from erro
+            if not isinstance(valor, dict):
+                raise RuntimeError(f"{nome} precisa ser um objeto JSON.")
+            return valor
+
+        extra = ler_json("EXTRA_BODY")
+
+        # Mapa tarefa -> corpo extra, aplicado por cima do EXTRA_BODY geral. Existe
+        # porque as tarefas não têm o mesmo perfil: o map é extrativo e uma notícia de
+        # 500 caracteres não tem o que deliberar, enquanto o reduce agrega dezenas de
+        # resumos e conta ids. Sem esta separação, ligar raciocínio para ajudar o reduce
+        # também o liga no map, onde ele só gasta orçamento e devolve conteúdo vazio.
+        por_tarefa = ler_json("EXTRA_BODY_POR_TAREFA")
+        for tarefa, corpo in por_tarefa.items():
+            if not isinstance(corpo, dict):
+                raise RuntimeError(
+                    f"EXTRA_BODY_POR_TAREFA['{tarefa}'] precisa ser um objeto JSON."
+                )
+        self._extra_por_tarefa: dict[str, dict[str, Any]] = por_tarefa
+
+        # 60 s serve para uma API remota, mas não para um servidor local: a primeira
+        # chamada depois de o servidor subir paga o carregamento do modelo do disco
+        # para a VRAM, o que passa de um minuto num modelo de 6 GB. O timeout é
+        # configurável porque o valor certo depende de onde o modelo roda.
+        try:
+            timeout = float(os.environ.get("TIMEOUT_SEGUNDOS", "300"))
+        except ValueError as erro:
+            raise RuntimeError(
+                f"TIMEOUT_SEGUNDOS precisa ser um número: {erro}"
+            ) from erro
+
+        # Ligada por padrão porque é o que impede o modelo de inventar nome de campo.
+        # Desligue com SAIDA_ESTRUTURADA=0 se o provedor não aceitar `response_format`.
+        self._estruturada = os.environ.get("SAIDA_ESTRUTURADA", "1").strip() not in (
+            "0", "false", "False", "nao", "não",
+        )
+
         self.nome: str = modelo
         self.chamadas: int = 0
         self.chamadas_por_tarefa: Counter[str] = Counter()
         self._base_url = base_url
+        self._extra: dict[str, Any] = extra
         self._cliente = httpx.Client(
-            timeout=60.0, headers={"Authorization": f"Bearer {api_key}"}
+            timeout=timeout, headers={"Authorization": f"Bearer {api_key}"}
         )
 
     def zerar_contadores(self) -> None:
@@ -334,23 +418,77 @@ class ModeloAPI:
         self.chamadas = 0
         self.chamadas_por_tarefa = Counter()
 
-    def gerar(self, *, prompt: str, contexto: dict[str, Any], tarefa: str) -> RespostaBruta:
+    def gerar(
+        self,
+        *,
+        prompt: str,
+        contexto: dict[str, Any],
+        tarefa: str,
+        esquema: dict[str, Any] | None = None,
+    ) -> RespostaBruta:
         """Uma chamada de chat completion. `contexto` é ignorado aqui."""
         self.chamadas += 1
         self.chamadas_por_tarefa[tarefa] += 1
+
+        corpo_envio: dict[str, Any] = {
+            "model": self.nome,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": TEMPERATURA,
+            "max_tokens": MAX_TOKENS_POR_TAREFA.get(tarefa, 2000),
+        }
+
+        # Decodificação restrita: o servidor passa a só conseguir emitir tokens que
+        # levem a um JSON válido contra este schema. Deixa de ser possível o modelo
+        # escolher o nome do campo — medido: sem isto, 3 de 11 consolidações de lote
+        # escreveram "puntos" no lugar de "pontos", e com temperatura 0 o reparo
+        # reproduzia o mesmo erro. Nem todo provedor aceita; daí o interruptor.
+        if esquema is not None and self._estruturada:
+            corpo_envio["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": tarefa, "strict": True, "schema": esquema},
+            }
+
+        # O que vem do .env tem a última palavra: é o ponto de escape do usuário. O
+        # ajuste por tarefa vem depois do geral, então refina em vez de competir.
+        corpo_envio.update(self._extra)
+        corpo_envio.update(self._extra_por_tarefa.get(tarefa, {}))
+
         resposta = self._cliente.post(
-            f"{self._base_url}/chat/completions",
-            json={
-                "model": self.nome,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": TEMPERATURA,
-            },
+            f"{self._base_url}/chat/completions", json=corpo_envio
         )
-        resposta.raise_for_status()
+        if resposta.status_code >= 400:
+            # O corpo costuma dizer qual campo o provedor recusou — sem ele, um
+            # EXTRA_BODY que este provedor não aceita vira um 400 mudo.
+            raise ErroDeResposta(
+                f"O provedor recusou a chamada de '{tarefa}' "
+                f"(HTTP {resposta.status_code}): {resposta.text[:400]}"
+            )
+
         corpo = resposta.json()
         uso = corpo.get("usage") or {}
+        escolha = corpo["choices"][0]
+        texto = escolha.get("message", {}).get("content") or ""
+        motivo = escolha.get("finish_reason")
+
+        if not texto.strip():
+            raciocinio = uso.get("reasoning_tokens") or uso.get("completion_tokens") or 0
+            raise ErroDeResposta(
+                f"O modelo '{self.nome}' devolveu conteúdo vazio em '{tarefa}' "
+                f"(finish_reason={motivo}, tokens gerados={raciocinio}). "
+                "Um modelo que raciocina gasta o orçamento pensando e não escreve a "
+                "resposta; desligue isso pelo EXTRA_BODY no .env. Repetir a chamada "
+                "não conserta — só consome cota."
+            )
+        if motivo == "length":
+            teto = MAX_TOKENS_POR_TAREFA.get(tarefa, 2000)
+            raise ErroDeResposta(
+                f"A resposta de '{tarefa}' foi cortada no teto de {teto} tokens, então "
+                f"o JSON chegou incompleto. Aumente MAX_TOKENS_POR_TAREFA['{tarefa}'] "
+                "em config.py."
+            )
+
         return RespostaBruta(
-            texto=corpo["choices"][0]["message"]["content"],
+            texto=texto,
             tokens={
                 "prompt": uso.get("prompt_tokens", 0),
                 "resposta": uso.get("completion_tokens", 0),
@@ -410,10 +548,16 @@ def gerar_validado(
     Regra 7: texto solto não passa. Depois da tentativa de reparo, o erro é registrado —
     nunca contornado.
     """
+    # O mesmo schema que valida a resposta pode restringir a geração dela. Quem sabe
+    # aproveitar, aproveita; quem não sabe, ignora — a validação abaixo é a mesma.
+    esquema = schema.model_json_schema()
+
     ultimo_erro = ""
     for tentativa in range(1, MAX_TENTATIVAS + 1):
         prompt_efetivo = prompt if tentativa == 1 else prompt + _DICA_REPARO
-        bruta = modelo.gerar(prompt=prompt_efetivo, contexto=contexto, tarefa=tarefa)
+        bruta = modelo.gerar(
+            prompt=prompt_efetivo, contexto=contexto, tarefa=tarefa, esquema=esquema
+        )
         try:
             return ResultadoValidado(
                 dados=schema.model_validate(extrair_json(bruta.texto)),

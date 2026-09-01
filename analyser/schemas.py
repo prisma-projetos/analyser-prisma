@@ -87,13 +87,14 @@ class ResumoItem(BaseModel):
 
 
 class RegistroResumo(BaseModel):
-    """O que efetivamente é gravado em `resumos_item.json`, uma vez e para sempre."""
+    """Notícia resumida e classificação definitiva, gravadas uma vez e para sempre."""
 
     model_config = ConfigDict(extra="forbid")
 
     item_id: str
     ator_id: str
     janela: str
+    rotulo: Eixo
     veiculo: str
     url: str
     data: date
@@ -169,7 +170,11 @@ class Panorama(BaseModel):
     janela: str
     eixo: Eixo
     total_itens: Annotated[int, Field(ge=0)]
-    temas: list[TemaContado] = Field(default_factory=list)
+    # Obrigatório de propósito: os DOIS fragmentos de formato pedem temas — o detalhado
+    # de 3 a 6, o compacto de 2 a 4. Nenhum dispensa, ao contrário dos campos abaixo, que
+    # variam mesmo. Enquanto este campo teve default, a decodificação restrita o tratou
+    # como dispensável e o formato compacto passou a devolver panorama sem tema nenhum.
+    temas: Annotated[list[TemaContado], Field(min_length=1)]
     fontes: Annotated[list[str], Field(min_length=1)]
     # Preenchido pelo formato `compacto`.
     texto: str | None = None
@@ -197,21 +202,5 @@ class RegistroPanorama(BaseModel):
     hash_prompt_formato: str
     rodada: str
     criado_em: str
-
-
-# --------------------------------------------------------------------------------------
-# Rótulos — camada mutável
-# --------------------------------------------------------------------------------------
-
-
-class RegistroRotulo(BaseModel):
-    """Rótulo vigente de um item, com histórico de reclassificações."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    item_id: str
-    rotulo_atual: Eixo
-    historico: list[dict[str, str]] = Field(default_factory=list)
-
 
 TipoAviso = Literal["fonte_inexistente", "contagem_divergente", "falha_validacao"]

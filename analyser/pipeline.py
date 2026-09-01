@@ -1,8 +1,8 @@
 """O pipeline do Analyser, em seis etapas.
 
 A ideia que organiza tudo: o resumo por notícia é caro e é pago uma vez só; o panorama é
-barato e é recalculado do zero sempre que algo na janela muda. Reclassificar uma notícia
-recalcula o panorama e NÃO re-resume a notícia.
+recalculado do zero quando uma notícia inédita altera uma janela. A classificação recebida
+do Classifier é definitiva e faz parte do registro imutável da notícia.
 """
 
 from __future__ import annotations
@@ -39,7 +39,6 @@ class ResultadoExecucao:
     ids_resumidos_agora: list[str] = field(default_factory=list)
     janelas_sujas: list[str] = field(default_factory=list)
     motivo_janela: dict[str, list[str]] = field(default_factory=dict)
-    itens_reclassificados: list[str] = field(default_factory=list)
     panoramas: list[RegistroPanorama] = field(default_factory=list)
     eixos_vazios: list[tuple[str, str]] = field(default_factory=list)
     avisos: list[str] = field(default_factory=list)
@@ -56,6 +55,10 @@ class ResultadoExecucao:
     def economia(self) -> tuple[int, int]:
         """(itens vindos do cache, itens resumidos agora)."""
         return len(self.ids_do_cache), len(self.ids_resumidos_agora)
+
+
+class ConflitoClassificacao(ValueError):
+    """Mesmo `item_id` recebido com rótulo diferente do registro imutável."""
 
 
 class Analyser:
@@ -99,17 +102,12 @@ class Analyser:
     # -- etapas 1 e 2 ------------------------------------------------------------------
 
     def _etapa_1_e_2(self, rodada: Rodada, resultado: ResultadoExecucao) -> set[str]:
-        """Resume o que é inédito e marca as janelas sujas.
-
-        Uma janela fica suja quando é tocada por um item novo OU por um item cujo rótulo
-        mudou. Só essas serão recalculadas.
-        """
+        """Resume o que é inédito e marca as janelas tocadas por itens novos."""
         ja_resumidos = self.armazenamento.ler_resumos()
+        self._validar_classificacoes_imutaveis(rodada, ja_resumidos)
         sujas: set[str] = set()
 
         for item in rodada.itens:
-            # O rótulo é registrado à parte, na única camada mutável do sistema.
-            mudou = self.armazenamento.registrar_rotulo(item.id, item.rotulo, resultado.rodada)
             inedito = item.id not in ja_resumidos
 
             if inedito:
@@ -124,26 +122,40 @@ class Analyser:
                 # a economia que o protótipo precisa demonstrar.
                 resultado.ids_do_cache.append(item.id)
 
-            if mudou:
-                resultado.itens_reclassificados.append(item.id)
-
-            if inedito or mudou:
+            if inedito:
                 sujas.add(item.janela)
-                motivo = "item novo" if inedito else "rótulo alterado"
                 resultado.motivo_janela.setdefault(item.janela, [])
-                marca = f"{item.id} ({motivo})"
+                marca = f"{item.id} (item novo)"
                 if marca not in resultado.motivo_janela[item.janela]:
                     resultado.motivo_janela[item.janela].append(marca)
 
         return sujas
 
+    @staticmethod
+    def _validar_classificacoes_imutaveis(
+        rodada: Rodada, ja_resumidos: dict[str, RegistroResumo]
+    ) -> None:
+        """Rejeita conflito de rótulo antes de qualquer escrita da rodada.
+
+        O mesmo `item_id` pode reaparecer para demonstrar o cache, mas precisa trazer a
+        mesma classificação definitiva. A validação antecede o laço de gravação para uma
+        rodada inválida não deixar resumos novos parcialmente persistidos.
+        """
+        for item in rodada.itens:
+            existente = ja_resumidos.get(item.id)
+            if existente is None or existente.rotulo == item.rotulo:
+                continue
+            raise ConflitoClassificacao(
+                f"O item {item.id} já foi classificado como {existente.rotulo!r} e "
+                f"reapareceu como {item.rotulo!r}. A classificação é imutável."
+            )
+
     def _resumir(self, ator: AtorPolitico, item: Any) -> None:
         """Etapa 1 (map): uma chamada por notícia inédita, gravada uma única vez.
 
-        A chamada não recebe o rótulo do classificador. É isso que faz o resumo continuar
-        válido quando o item é reclassificado, e é isso que o mantém imparcial: no
-        sistema ele será exibido dentro do agrupamento em que a matéria caiu, e não pode
-        assumir o tom desse agrupamento.
+        A chamada não recebe o rótulo do classificador, para o texto permanecer imparcial.
+        Depois da resposta do modelo, a classificação definitiva é anexada ao registro
+        persistido e usada apenas para agrupamento.
         """
         prompt_resumo = self.prompts.montar_resumo_item(
             ator_nome=ator.nome,
@@ -169,6 +181,7 @@ class Analyser:
                 item_id=item.id,
                 ator_id=ator.id,
                 janela=item.janela,
+                rotulo=item.rotulo,
                 veiculo=item.veiculo,
                 url=item.url,
                 data=item.data,
@@ -203,20 +216,16 @@ class Analyser:
             resultado.panoramas.append(registro)
 
     def _etapa_3_agrupar(self, ator_id: str, janela: str) -> dict[Eixo, list[RegistroResumo]]:
-        """Agrupa por rótulo VIGENTE todos os resumos daquela janela. Python puro.
+        """Agrupa pela classificação definitiva todos os resumos da janela. Python puro.
 
         Note que a base é o conjunto completo de resumos da janela, não apenas os itens
         da rodada: o panorama é recalculado do zero, sempre.
         """
-        rotulos = self.armazenamento.ler_rotulos()
         grupos: dict[Eixo, list[RegistroResumo]] = defaultdict(list)
         for registro in self.armazenamento.ler_resumos().values():
             if registro.ator_id != ator_id or registro.janela != janela:
                 continue
-            vigente = rotulos.get(registro.item_id)
-            if vigente is None:
-                continue
-            grupos[vigente.rotulo_atual].append(registro)
+            grupos[registro.rotulo].append(registro)
         for lista in grupos.values():
             lista.sort(key=lambda r: r.item_id)
         return grupos
@@ -265,6 +274,7 @@ class Analyser:
             ator_id=rodada.ator.id,
             janela=janela,
             parciais=json.dumps(carga_parciais, ensure_ascii=False, indent=2),
+            materias=len(resumos),
         )
         final = gerar_validado(
             self.modelo,
@@ -281,7 +291,8 @@ class Analyser:
         )
         self._somar_tokens(final.tokens)
 
-        avisos = self._etapa_6_verificar(final.dados, resumos)
+        avisos = self._normalizar_contagens(final.dados)
+        avisos += self._etapa_6_verificar(final.dados, resumos)
         for aviso in avisos:
             resultado.avisos.append(f"[{janela}/{eixo}] {aviso}")
 
@@ -305,6 +316,49 @@ class Analyser:
         )
         self.armazenamento.gravar_panorama(registro)
         return registro
+
+    @staticmethod
+    def _normalizar_contagens(panorama: Panorama) -> list[str]:
+        """Deriva as contagens da própria resposta, em vez de aceitar as declaradas.
+
+        `ocorrencias` e `total_itens` não são afirmações do modelo sobre a cobertura —
+        são o tamanho de listas que ele mesmo escreveu, na mesma resposta. Perguntá-los
+        é convidar erro justamente onde `len()` dá a resposta exata. Medido com o
+        Qwen3.5-9B: um tema declarou 3 ocorrências listando 2 fontes, e o mesmo tema
+        havia agrupado corretamente as duas matérias que cobriam o mesmo fato.
+
+        Isto NÃO é conserto silencioso, e a diferença importa. Toda substituição vira
+        aviso registrado na auditoria, exatamente como viraria se a etapa 6 apenas
+        apontasse a divergência. O que muda é que o número gravado passa a ser o certo:
+        `ocorrencias` ordena os temas no painel, então um número inflado promove um tema
+        acima do que as matérias sustentam — o cidadão veria como mais relevante algo
+        que não é.
+
+        A distinção com a etapa 6 é o tipo de alegação. Verificar se um id citado existe
+        no conjunto é conferir uma afirmação sobre o CONTEÚDO, e ali corrigir seria
+        adulterar o que o modelo disse. Aqui não há alegação a preservar: há aritmética
+        sobre uma lista que está à vista.
+        """
+        avisos: list[str] = []
+
+        for tema in panorama.temas:
+            real = len(set(tema.fontes))
+            if tema.ocorrencias != real:
+                avisos.append(
+                    f"tema '{tema.tema}' declarou {tema.ocorrencias} ocorrências e lista "
+                    f"{real} fontes distintas; gravado {real}"
+                )
+                tema.ocorrencias = real
+
+        total = len(set(panorama.fontes))
+        if panorama.total_itens != total:
+            avisos.append(
+                f"total_itens declarado é {panorama.total_itens} e o panorama lista "
+                f"{total} fontes distintas; gravado {total}"
+            )
+            panorama.total_itens = total
+
+        return avisos
 
     @staticmethod
     def _etapa_6_verificar(panorama: Panorama, resumos: list[RegistroResumo]) -> list[str]:
@@ -351,18 +405,14 @@ class Analyser:
 
     def _contabilizar(self, rodada: Rodada, resultado: ResultadoExecucao) -> None:
         """Contagem por eixo e por veículo nas janelas recalculadas."""
-        rotulos = self.armazenamento.ler_rotulos()
         for janela in resultado.janelas_sujas:
             por_eixo: Counter[str] = Counter()
             for registro in self.armazenamento.ler_resumos().values():
                 if registro.ator_id != rodada.ator.id or registro.janela != janela:
                     continue
-                vigente = rotulos.get(registro.item_id)
-                if vigente is None:
-                    continue
-                por_eixo[vigente.rotulo_atual] += 1
+                por_eixo[registro.rotulo] += 1
                 resultado.contagem_veiculo.setdefault(registro.veiculo, Counter())
-                resultado.contagem_veiculo[registro.veiculo][vigente.rotulo_atual] += 1
+                resultado.contagem_veiculo[registro.veiculo][registro.rotulo] += 1
             resultado.contagem_eixo[janela] = por_eixo
 
     def _somar_tokens(self, tokens: dict[str, int] | None) -> None:
@@ -383,7 +433,6 @@ class Analyser:
             "ids_entrada": resultado.ids_entrada,
             "ids_resumidos_agora": resultado.ids_resumidos_agora,
             "ids_do_cache": resultado.ids_do_cache,
-            "itens_reclassificados": resultado.itens_reclassificados,
             "janelas_recalculadas": resultado.janelas_sujas,
             "panoramas_gravados": [
                 {"janela": p.janela, "eixo": p.eixo, "versao": p.versao, "lotes": p.lotes}
