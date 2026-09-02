@@ -9,11 +9,17 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from typing import Any
 
-from analyser.armazenamento import Armazenamento, agora_iso, carimbo_execucao
+from analyser.armazenamento import (
+    Armazenamento,
+    DestinoArmazenamento,
+    agora_iso,
+    carimbo_execucao,
+)
 from analyser.config import EIXOS, FORMATO_POR_EIXO, Config, Eixo
 from analyser.modelos import ErroDeValidacao, Modelo, gerar_validado
 from analyser.prompts import Prompts
@@ -64,6 +70,23 @@ class ConflitoClassificacao(ValueError):
     """Mesmo `item_id` recebido com rótulo diferente do registro imutável."""
 
 
+#: Tudo que não é letra sem acento ou dígito vira separador no id do tema.
+_NAO_SLUG = re.compile(r"[^a-z0-9]+")
+
+
+def _slug(texto: str) -> str:
+    """Converte o nome de um tema em id legível e estável.
+
+    Legível de propósito: `campanha-de-reeleicao-de-lula` diz o que é ao ser lido num
+    log ou numa URL, enquanto um hash exigiria consultar o banco para saber de que
+    tema se trata. Acentos são removidos para o id sobreviver a URL, nome de arquivo e
+    comparação entre bancos com collation diferente.
+    """
+    decomposto = unicodedata.normalize("NFD", texto.lower())
+    sem_acento = "".join(c for c in decomposto if unicodedata.category(c) != "Mn")
+    return _NAO_SLUG.sub("-", sem_acento).strip("-")
+
+
 #: Um id vazado para dentro do parágrafo do panorama. Os três fragmentos de formato
 #: proíbem ids na prosa — a rastreabilidade mora em `temas[].fontes` e em `fontes`, e o
 #: texto corre limpo para quem lê. Esta expressão existe para detectar a desobediência e
@@ -89,10 +112,18 @@ def _ids_no_texto(texto: str) -> set[str]:
 class Analyser:
     """Orquestra as seis etapas sobre uma rodada."""
 
-    def __init__(self, config: Config, modelo: Modelo) -> None:
+    def __init__(
+        self,
+        config: Config,
+        modelo: Modelo,
+        armazenamento: DestinoArmazenamento | None = None,
+    ) -> None:
         self.config = config
         self.modelo = modelo
-        self.armazenamento = Armazenamento(config)
+        # O destino é injetável para o mesmo pipeline servir JSON e PostgreSQL sem saber
+        # qual dos dois está do outro lado. O padrão continua sendo JSON, e é o que mantém
+        # a suíte inteira rodando sem banco.
+        self.armazenamento: DestinoArmazenamento = armazenamento or Armazenamento(config)
         self.prompts = Prompts(raiz=config.prompts)
         self.prompts.precarregar()
         self._tokens: Counter[str] = Counter()
@@ -248,9 +279,9 @@ class Analyser:
         da rodada: o panorama é recalculado do zero, sempre.
         """
         grupos: dict[Eixo, list[RegistroResumo]] = defaultdict(list)
-        for registro in self.armazenamento.ler_resumos().values():
-            if registro.ator_id != ator_id or registro.janela != janela:
-                continue
+        for registro in self.armazenamento.ler_resumos_da_janela(
+            ator_id=ator_id, janela=janela
+        ):
             grupos[registro.rotulo].append(registro)
         for lista in grupos.values():
             lista.sort(key=lambda r: r.item_id)
@@ -325,6 +356,7 @@ class Analyser:
         )
         self._somar_tokens(final.tokens)
 
+        self._atribuir_ids_de_tema(final.dados)
         avisos = self._normalizar_contagens(final.dados)
         avisos += self._etapa_6_verificar(final.dados, resumos)
         for aviso in avisos:
@@ -350,6 +382,27 @@ class Analyser:
         )
         self.armazenamento.gravar_panorama(registro)
         return registro
+
+    @staticmethod
+    def _atribuir_ids_de_tema(panorama: Panorama) -> None:
+        """Dá a cada tema um id estável, derivado do próprio nome.
+
+        O id não é pedido ao modelo de propósito. Quem gera texto livre não produz
+        identificador estável: o mesmo assunto voltaria com id diferente a cada
+        execução, e um id que muda sozinho não serve para nada. Derivando do nome, o
+        mesmo tema mantém o mesmo id entre versões do panorama e entre janelas — que é
+        o que permite ao frontend acompanhar um assunto ao longo do tempo.
+
+        Diferente de `_normalizar_contagens`, aqui não há aviso a registrar: nada está
+        sendo corrigido, só preenchido onde o modelo nunca escreveu.
+        """
+        vistos: Counter[str] = Counter()
+        for tema in panorama.temas:
+            base = _slug(tema.tema) or "tema"
+            vistos[base] += 1
+            # Dois temas podem cair no mesmo slug ("Lula" e "lula"). O sufixo mantém o
+            # id único dentro do panorama sem perder a legibilidade do primeiro.
+            tema.id = base if vistos[base] == 1 else f"{base}-{vistos[base]}"
 
     @staticmethod
     def _normalizar_contagens(panorama: Panorama) -> list[str]:

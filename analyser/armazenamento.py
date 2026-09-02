@@ -14,10 +14,45 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from analyser.config import Config, Eixo
 from analyser.schemas import RegistroPanorama, RegistroResumo
+
+
+class DestinoArmazenamento(Protocol):
+    """A porta que o pipeline usa para persistir. JSON hoje, PostgreSQL depois.
+
+    O pipeline nunca fala com um arquivo nem com uma conexão: fala com estes nove métodos.
+    Isolá-los é o que permite trocar o destino sem tocar nas seis etapas — e é o que mantém
+    a suíte inteira rodando sobre JSON, sem banco, mesmo depois de a persistência real
+    existir.
+
+    O projeto já usa esse desenho em `DestinoInbox` (`analyser/rabbitmq.py`), pelo mesmo
+    motivo: o consumidor recebe a porta por parâmetro e os testes injetam um dublê.
+    """
+
+    def ler_resumos(self) -> dict[str, RegistroResumo]: ...
+
+    def ler_resumos_da_janela(
+        self, *, ator_id: str, janela: str
+    ) -> list[RegistroResumo]: ...
+
+    def gravar_resumo(self, registro: RegistroResumo) -> None: ...
+
+    def ler_panoramas(self) -> list[RegistroPanorama]: ...
+
+    def proxima_versao(self, *, ator_id: str, janela: str, eixo: Eixo) -> int: ...
+
+    def gravar_panorama(self, registro: RegistroPanorama) -> None: ...
+
+    def panoramas_mais_recentes(
+        self, *, ator_id: str, janela: str
+    ) -> dict[Eixo, RegistroPanorama]: ...
+
+    def proximo_numero_rodada(self) -> int: ...
+
+    def gravar_auditoria(self, carimbo: str, dados: dict[str, Any]) -> Path: ...
 
 
 class ViolacaoAppendOnly(RuntimeError):
@@ -90,6 +125,22 @@ class Armazenamento:
                 "regenere essa saída antes de usá-la com a classificação imutável."
             )
         return {item_id: RegistroResumo.model_validate(v) for item_id, v in cru.items()}
+
+    def ler_resumos_da_janela(
+        self, *, ator_id: str, janela: str
+    ) -> list[RegistroResumo]:
+        """Só os resumos de um `(ator, janela)`, que é o recorte do panorama.
+
+        Em JSON o filtro é em memória e não economiza nada — o arquivo é lido inteiro de
+        qualquer jeito. O método existe pela outra ponta da porta: contra PostgreSQL isto
+        vira um `WHERE`, enquanto `ler_resumos()` traria a tabela toda para dentro do
+        processo a cada recálculo de janela.
+        """
+        return [
+            registro
+            for registro in self.ler_resumos().values()
+            if registro.ator_id == ator_id and registro.janela == janela
+        ]
 
     def gravar_resumo(self, registro: RegistroResumo) -> None:
         """Grava UM resumo. Recusa-se a sobrescrever um id já existente.
