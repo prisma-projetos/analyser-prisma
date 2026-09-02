@@ -89,18 +89,22 @@ def test_montar_resumo_nem_recebe_rotulo(prompts: Prompts) -> None:
 
 
 @pytest.mark.parametrize("eixo", EIXOS)
-def test_reduce_nao_instrui_tom(prompts: Prompts, eixo: str) -> None:
-    """O prompt final dos três eixos não contém termo de ênfase valorativa.
+def test_reduce_manda_descrever_a_cobertura_e_nao_julgar_o_ator(
+    prompts: Prompts, eixo: str
+) -> None:
+    """O reduce agora recorta por eixo, mas continua falando da COBERTURA.
 
-    Inspeciona as INSTRUÇÕES — base única mais fragmento de formato — porque instruir tom
-    é uma propriedade do que se pede ao modelo, não dos dados que o acompanham.
+    Até 1º de setembro de 2026 havia aqui um teste que proibia qualquer termo valorativo
+    no prompt final. Ele caiu junto com a decisão de produto que fez o panorama reunir as
+    críticas no eixo negativo e os elogios no positivo — instruir esse recorte é agora o
+    objetivo, não o acidente.
+
+    O que sobrou da regra, e que este teste guarda: o fragmento manda descrever o que as
+    matérias registram, nunca emitir juízo sobre o ator.
     """
-    instrucoes = prompts.instrucoes_finais(eixo=eixo)  # type: ignore[arg-type]
-    proibidos = achados(instrucoes.texto, TERMOS_DE_TOM)
-    assert not proibidos, (
-        f"o prompt final do eixo {eixo} contém {proibidos} — o fragmento descreve forma, "
-        "não encomenda conteúdo"
-    )
+    instrucoes = normalizar(prompts.instrucoes_finais(eixo=eixo).texto)  # type: ignore[arg-type]
+    assert "sem adjetivo sobre o alvo" in instrucoes
+    assert "a cobertura" in instrucoes
 
 
 @pytest.mark.parametrize("eixo", EIXOS)
@@ -122,26 +126,34 @@ def test_reduce_informa_qual_eixo(prompts: Prompts, eixo: str) -> None:
     assert eixo in normalizar(instrucoes.texto)
 
 
-def test_negativo_e_positivo_usam_o_mesmo_arquivo_de_formato(prompts: Prompts) -> None:
-    """Os fragmentos são nomeados pelo formato, nunca pelo eixo.
+def test_cada_eixo_tem_seu_proprio_fragmento(prompts: Prompts) -> None:
+    """Os três fragmentos são distintos, e cada eixo resolve para o seu.
 
-    `negativo` e `positivo` resolvem para o mesmo arquivo, byte a byte. É isso que torna
-    uma assimetria de tom entre os dois impossível de introduzir por descuido.
+    Substitui o teste que exigia arquivo único para negativo e positivo. A assimetria
+    passou a ser o produto — ver `FORMATO_POR_EIXO` para o porquê e para o que ela não
+    afrouxou.
     """
-    assert prompts.arquivo_formato("negativo") == prompts.arquivo_formato("positivo")
-    assert prompts.hash_formato("negativo") == prompts.hash_formato("positivo")
-    assert prompts.arquivo_formato("neutro") != prompts.arquivo_formato("negativo")
+    arquivos = {eixo: prompts.arquivo_formato(eixo) for eixo in EIXOS}  # type: ignore[arg-type]
+    assert len(set(arquivos.values())) == len(EIXOS)
 
-    # E o que diferencia os dois formatos é estrutura, não tom.
-    detalhado = prompts.carregar("formatos/detalhado.txt").texto
-    compacto = prompts.carregar("formatos/compacto.txt").texto
-    assert "fatos_mais_citados" in detalhado
-    assert re.search(r"2 a 3 frases", compacto)
+    hashes = {eixo: prompts.hash_formato(eixo) for eixo in EIXOS}  # type: ignore[arg-type]
+    assert len(set(hashes.values())) == len(EIXOS)
 
 
-def test_arquivos_de_formato_nao_sao_nomeados_por_eixo(raiz) -> None:
-    """Não pode existir fragmento batizado com o nome de um eixo."""
+@pytest.mark.parametrize("eixo", EIXOS)
+def test_fragmento_pede_paragrafo_unico_e_nao_lista_de_fatos(
+    prompts: Prompts, eixo: str
+) -> None:
+    """Todo fragmento pede UM parágrafo em `texto`, e nenhum pede a lista antiga."""
+    fragmento = prompts.carregar(prompts.arquivo_formato(eixo)).texto  # type: ignore[arg-type]
+    assert "fatos_mais_citados" not in fragmento
+    assert re.search(r"UM par[áa]grafo [úu]nico", fragmento)
+    # A rastreabilidade saiu da prosa e ficou nos campos próprios.
+    assert "NÃO escreva ids dentro do parágrafo" in fragmento
+    assert "ABRA NOMEANDO O RECORTE" in fragmento
+
+
+def test_fragmentos_existentes_sao_exatamente_os_tres_eixos(raiz) -> None:
+    """Não sobrou fragmento órfão nomeado pelo formato antigo."""
     existentes = {p.name for p in (raiz / "prompts" / "formatos").glob("*.txt")}
-    for eixo in EIXOS:
-        assert f"eixo_{eixo}.txt" not in existentes
-        assert f"{eixo}.txt" not in existentes
+    assert existentes == {f"{eixo}.txt" for eixo in EIXOS}

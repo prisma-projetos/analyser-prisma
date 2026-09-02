@@ -22,7 +22,7 @@ from analyser.modelos import (
     gerar_validado,
 )
 from analyser.pipeline import Analyser
-from analyser.schemas import Panorama, ResumoItem
+from analyser.schemas import Panorama, RegistroResumo, ResumoItem
 
 
 class ModeloDesobediente:
@@ -110,37 +110,56 @@ def test_cerca_de_codigo_e_tolerada() -> None:
 
 
 def test_schema_unico_serve_aos_tres_eixos() -> None:
-    """Os campos que VARIAM por formato são opcionais, não obrigatórios.
+    """Os três eixos preenchem exatamente os mesmos campos.
 
-    É o que permite ao frontend ter um contrato só para os três eixos. `temas` fica de
-    fora dessa lista porque os dois fragmentos de formato o pedem — ele não varia.
+    É o que permite ao frontend ter um contrato só. Desde que o panorama passou a
+    entregar um parágrafo consolidado, nenhum campo é exclusivo de um formato: o que
+    muda entre os eixos é o que o fragmento manda reunir no `texto`, não a forma.
     """
     tema = {"tema": "obra parada", "ocorrencias": 1, "fontes": ["not_009"]}
 
-    compacto = Panorama(
+    neutro = Panorama(
         ator_id="ator_001",
         janela="2026-08",
         eixo="neutro",
         total_itens=2,
         temas=[tema],
         fontes=["not_009"],
-        texto="Duas frases.",
+        texto="A cobertura registra a audiência pública (not_009).",
     )
-    assert compacto.fatos_mais_citados == []
 
-    detalhado = Panorama(
+    negativo = Panorama(
         ator_id="ator_001",
         janela="2026-08",
         eixo="negativo",
         total_itens=2,
         temas=[tema],
         fontes=["not_001"],
-        fatos_mais_citados=[{"descricao": "algo", "fontes": ["not_001"]}],
+        texto="As matérias apontam a obra parada há cinco meses (not_001).",
     )
-    assert detalhado.texto is None
 
     # Nenhum nome de campo sinaliza polaridade: os dois eixos usam o mesmo contrato.
-    assert set(compacto.model_dump()) == set(detalhado.model_dump())
+    assert set(neutro.model_dump()) == set(negativo.model_dump())
+
+
+def test_panorama_sem_texto_e_rejeitado() -> None:
+    """O parágrafo é o conteúdo do panorama, então não pode ser omissível.
+
+    Mesmo motivo de `temas`: um campo com default é tratado como dispensável pela
+    decodificação restrita, e aqui o dispensável seria justamente o que o cidadão lê.
+    """
+    tema = {"tema": "obra parada", "ocorrencias": 1, "fontes": ["not_009"]}
+    for texto in ({}, {"texto": ""}):
+        with pytest.raises(ValidationError):
+            Panorama(
+                ator_id="ator_001",
+                janela="2026-08",
+                eixo="neutro",
+                total_itens=1,
+                temas=[tema],
+                fontes=["not_009"],
+                **texto,
+            )
 
 
 def test_panorama_sem_temas_e_rejeitado() -> None:
@@ -191,6 +210,49 @@ def test_o_fake_sempre_produz_saida_valida() -> None:
     assert modelo.chamadas == 1
 
 
+def test_id_vazado_no_paragrafo_vira_aviso() -> None:
+    """O parágrafo corre sem códigos; um id na prosa é o formato desobedecido.
+
+    A rastreabilidade mora em `temas[].fontes` e em `fontes`. Se o modelo insiste em
+    escrever "(art_408)" no meio do texto, o cidadão veria isso na tela — então a etapa 6
+    registra o vazamento em vez de deixá-lo passar.
+    """
+    tema = {"tema": "obra parada", "ocorrencias": 1, "fontes": ["not_001"]}
+    resumos = [
+        RegistroResumo(
+            item_id="not_001",
+            ator_id="ator_001",
+            janela="2026-08",
+            rotulo="negativo",
+            veiculo="Jornal",
+            url="https://exemplo.invalido/a",
+            data="2026-08-01",
+            titulo="Título",
+            resumo="Uma frase.",
+            temas=["obra"],
+            fonte_id="not_001",
+            modelo="fake",
+            hash_prompt_resumo="x",
+            criado_em="2026-08-01T00:00:00+00:00",
+        )
+    ]
+
+    limpo = Panorama(
+        ator_id="ator_001", janela="2026-08", eixo="negativo", total_itens=1,
+        temas=[tema], fontes=["not_001"],
+        texto="As críticas registradas apontam a obra parada há cinco meses.",
+    )
+    assert Analyser._etapa_6_verificar(limpo, resumos) == []
+
+    vazado = Panorama(
+        ator_id="ator_001", janela="2026-08", eixo="negativo", total_itens=1,
+        temas=[tema], fontes=["not_001"],
+        texto="As críticas apontam a obra parada (not_001).",
+    )
+    avisos = Analyser._etapa_6_verificar(vazado, resumos)
+    assert any("cita ids entre parênteses" in a and "not_001" in a for a in avisos)
+
+
 def test_contagem_divergente_e_derivada_e_registrada() -> None:
     """A contagem gravada vem da lista, e a divergência não desaparece.
 
@@ -207,6 +269,7 @@ def test_contagem_divergente_e_derivada_e_registrada() -> None:
         temas=[{"tema": "reforma da rodoviária", "ocorrencias": 3,
                 "fontes": ["not_005", "not_006"]}],
         fontes=["not_005", "not_006"],
+        texto="As matérias registram a suspensão da licitação (not_005, not_006).",
     )
 
     avisos = Analyser._normalizar_contagens(panorama)
