@@ -52,6 +52,7 @@ export type FormatoPanorama = Eixo;
 export type FonteId = string;
 
 export interface TemaContado {
+  id: string;
   tema: string;
   ocorrencias: number;
   fontes: FonteId[];
@@ -93,7 +94,7 @@ export interface RegistroPanorama {
 | `janela` | `string` | Mês no formato `YYYY-MM`. | Seletor de período. |
 | `eixo` | `Eixo` | `positivo`, `negativo` ou `neutro`. | Aba ou seção, mantendo o nome real. |
 | `total_itens` | `number` | Total de fontes distintas do panorama. A contagem é normalizada em Python. | Indicador "N notícias". |
-| `temas` | `TemaContado[]` | Lista não vazia. Cada tema possui assunto, contagem e fontes. | Ranking ou chips de temas. |
+| `temas` | `TemaContado[]` | Lista não vazia. Cada tema possui id, assunto, contagem e fontes. | Ranking ou chips de temas; use `id` como chave. |
 | `fontes` | `string[]` | Todos os ids de matérias usados, sem repetição. | Base para buscar URLs e títulos na API. |
 | `texto` | `string` | Sempre preenchido, nos três eixos. Um parágrafo de 3 a 6 frases, **sem ids na prosa**, abrindo por uma frase que nomeia o recorte ("As críticas registradas pela cobertura..."). Nunca vazio. | Corpo do panorama. É o conteúdo principal da tela, e pode ser exibido como veio. |
 
@@ -101,6 +102,7 @@ export interface RegistroPanorama {
 
 ### TemaContado
 
+- `id`: identificador estável, derivado do nome (`campanha-de-reeleicao-de-lula`). Não vem do modelo — é gerado em Python, porque um gerador de texto livre devolveria id diferente a cada execução. O mesmo tema mantém o mesmo id entre versões do panorama e entre janelas, o que permite acompanhar um assunto ao longo do tempo;
 - `tema`: nome curto do assunto;
 - `ocorrencias`: quantidade de fontes distintas;
 - `fontes`: ids que sustentam o tema.

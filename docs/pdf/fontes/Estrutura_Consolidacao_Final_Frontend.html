@@ -78,6 +78,7 @@ eixo — e não um só. Os três têm exatamente a mesma forma; o que muda é o 
 export type ItemId = string;
 
 export interface TemaContado {
+  id: string;            // <b>slug estável, gerado em Python</b>
   tema: string;          // 1 a 4 palavras
   ocorrencias: number;   // quantas matérias distintas sustentam o tema
   fontes: ItemId[];      // os ids dessas matérias
@@ -122,7 +123,7 @@ export interface RegistroPanorama {
 <table>
   <tr><th style="width:15%">Campo</th><th style="width:16%">Tipo</th><th style="width:34%">O que é</th><th>Uso na tela</th></tr>
   <tr><td><code>texto</code></td><td><code>string</code></td><td><strong>O conteúdo principal.</strong> Parágrafo de 3 a 6 frases, sem ids no meio da prosa. A primeira frase nomeia o recorte ("As críticas registradas pela cobertura do mês…"). Nunca vazio.</td><td>Corpo do painel. Pode ser exibido exatamente como veio — não precisa de tratamento.</td></tr>
-  <tr><td><code>temas</code></td><td><code>TemaContado[]</code></td><td>Assuntos recorrentes, do mais para o menos citado. Nunca vazio.</td><td>Chips, lista ou ranking. <code>ocorrencias</code> é contagem de <strong>matérias</strong>, não de menções.</td></tr>
+  <tr><td><code>temas</code></td><td><code>TemaContado[]</code></td><td>Assuntos recorrentes, do mais para o menos citado. Nunca vazio. Cada tema traz um <code>id</code> estável derivado do nome (<code>campanha-de-reeleicao-de-lula</code>).</td><td>Chips, lista ou ranking — use o <code>id</code> como chave, não o índice. <code>ocorrencias</code> é contagem de <strong>matérias</strong>, não de menções.</td></tr>
   <tr><td><code>total_itens</code></td><td><code>number</code></td><td>Matérias distintas que compõem o panorama. Já normalizado no backend.</td><td>Indicador "N notícias". Não recalcular a partir de <code>fontes</code>.</td></tr>
   <tr><td><code>fontes</code></td><td><code>ItemId[]</code></td><td>Ids das matérias usadas, sem repetição. <strong>São ids, não URLs.</strong></td><td>Ver a seção 6 — hoje ainda não há como resolvê-los para manchete.</td></tr>
   <tr><td><code>eixo</code></td><td><code>Eixo</code></td><td>Qual recorte este panorama consolida.</td><td>Aba ou seção. Manter o nome real — não traduzir para "bom/ruim".</td></tr>

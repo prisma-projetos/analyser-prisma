@@ -152,6 +152,12 @@ class TemaContado(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    #: Identificador estável do tema, derivado do nome em Python — nunca pedido ao
+    #: modelo. Um gerador de texto livre não produz identificador estável: o mesmo
+    #: assunto viria com id diferente a cada execução, e o campo perderia justamente
+    #: a serventia de ser id. Fica com default porque a resposta do modelo não o traz;
+    #: `Analyser._atribuir_ids_de_tema` o preenche antes de qualquer gravação.
+    id: str = ""
     tema: str
     ocorrencias: Annotated[int, Field(ge=1)]
     fontes: Annotated[list[str], Field(min_length=1)]

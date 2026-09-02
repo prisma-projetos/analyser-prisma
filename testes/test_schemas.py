@@ -315,3 +315,54 @@ def test_faixa_de_temas_acompanha_o_volume() -> None:
     # Cresce: um eixo grande admite mais temas que um pequeno.
     assert faixa_de_temas(60)[1] > faixa_de_temas(2)[1]
     assert faixa_de_temas(60)[0] > faixa_de_temas(2)[0]
+
+
+def test_id_do_tema_e_derivado_do_nome_e_nao_do_modelo() -> None:
+    """O id do tema é preenchido em Python, legível e estável para o mesmo nome.
+
+    Pedir identificador a um gerador de texto livre devolveria valor diferente a cada
+    execução — um id que muda sozinho não identifica nada. Derivando do nome, o mesmo
+    assunto mantém o mesmo id entre versões do panorama e entre janelas.
+    """
+    panorama = Panorama(
+        ator_id="ator_001",
+        janela="2026-08",
+        eixo="positivo",
+        total_itens=1,
+        temas=[
+            {"tema": "campanha de reeleição de Lula", "ocorrencias": 1, "fontes": ["not_001"]},
+            {"tema": "pesquisa eleitoral da BTG/Nexus", "ocorrencias": 1, "fontes": ["not_001"]},
+        ],
+        fontes=["not_001"],
+        texto="Os elogios registrados pela cobertura concentram-se na campanha.",
+    )
+
+    # O modelo não devolve o campo: ele nasce vazio e é preenchido depois.
+    assert [t.id for t in panorama.temas] == ["", ""]
+
+    Analyser._atribuir_ids_de_tema(panorama)
+
+    assert [t.id for t in panorama.temas] == [
+        "campanha-de-reeleicao-de-lula",
+        "pesquisa-eleitoral-da-btg-nexus",
+    ]
+
+
+def test_temas_com_mesmo_slug_nao_repetem_id() -> None:
+    """Dois nomes diferentes podem cair no mesmo slug; o id continua único."""
+    tema = lambda nome: {"tema": nome, "ocorrencias": 1, "fontes": ["not_001"]}
+    panorama = Panorama(
+        ator_id="ator_001",
+        janela="2026-08",
+        eixo="neutro",
+        total_itens=1,
+        temas=[tema("Ciro Gomes"), tema("ciro gomes"), tema("CIRO GOMES")],
+        fontes=["not_001"],
+        texto="A cobertura registra menções ao candidato.",
+    )
+
+    Analyser._atribuir_ids_de_tema(panorama)
+
+    ids = [t.id for t in panorama.temas]
+    assert ids == ["ciro-gomes", "ciro-gomes-2", "ciro-gomes-3"]
+    assert len(set(ids)) == 3
