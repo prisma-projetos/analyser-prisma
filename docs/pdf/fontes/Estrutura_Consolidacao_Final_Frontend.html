@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Estrutura da Consolidação Final — contrato para o frontend</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font: 10pt/1.5 "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #16191f; margin: 0; }
+  h1 { font-size: 19pt; line-height: 1.2; margin: 0 0 4pt; letter-spacing: -.01em; }
+  h2 { font-size: 12.5pt; margin: 18pt 0 6pt; padding-bottom: 4pt; border-bottom: 1.5pt solid #16191f; page-break-after: avoid; }
+  h3 { font-size: 10.5pt; margin: 12pt 0 5pt; page-break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 7pt; padding-left: 16pt; }
+  li { margin-bottom: 3pt; }
+  code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 8.5pt; background: #eef1f5; padding: 1pt 3pt; border-radius: 2pt; }
+  pre { font-family: "Cascadia Mono", Consolas, monospace; font-size: 8pt; line-height: 1.45;
+        background: #f6f8fa; border: .5pt solid #d5dae1; border-left: 2.5pt solid #16191f;
+        padding: 8pt 10pt; margin: 0 0 10pt; white-space: pre-wrap; page-break-inside: avoid; }
+  pre b { font-weight: 700; color: #0b4f9e; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 10pt; font-size: 8.8pt; page-break-inside: avoid; }
+  th { text-align: left; background: #16191f; color: #fff; padding: 4pt 6pt; font-weight: 600; }
+  td { padding: 4pt 6pt; border-bottom: .5pt solid #d5dae1; vertical-align: top; }
+  tr:nth-child(even) td { background: #f6f8fa; }
+  td code { font-size: 8pt; background: none; padding: 0; }
+  .capa { border-bottom: 2.5pt solid #16191f; padding-bottom: 11pt; margin-bottom: 8pt; }
+  .sub { color: #5a6472; font-size: 9.5pt; margin: 0; }
+  .meta { font-size: 8.5pt; color: #5a6472; margin-top: 7pt; }
+  .nota { background: #f2f7ff; border: .5pt solid #b9d3f2; border-left: 2.5pt solid #2563a8;
+          padding: 8pt 10pt; margin: 0 0 10pt; font-size: 9.3pt; page-break-inside: avoid; }
+  .alerta { background: #fff8ee; border: .5pt solid #f0d9ae; border-left: 2.5pt solid #b5791a;
+            padding: 8pt 10pt; margin: 0 0 10pt; font-size: 9.3pt; page-break-inside: avoid; }
+  .nota p:last-child, .alerta p:last-child, .nota ul:last-child, .alerta ul:last-child { margin-bottom: 0; }
+  .rot { font-weight: 700; font-size: 8.3pt; text-transform: uppercase; letter-spacing: .06em;
+         display: block; margin-bottom: 3pt; }
+  .nota .rot { color: #2563a8; } .alerta .rot { color: #8a5a12; }
+  .quebra { page-break-before: always; }
+  .amostra { background: #fbfcfd; border: .5pt solid #d5dae1; padding: 9pt 11pt; margin: 0 0 10pt;
+             font-size: 9.3pt; page-break-inside: avoid; }
+  .amostra .eixo { font-weight: 700; font-size: 8.3pt; text-transform: uppercase; letter-spacing: .06em; }
+  .neg { color: #b3261e; } .pos { color: #1a6b3c; } .neu { color: #8a6d1a; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <h1>Estrutura da Consolidação Final</h1>
+  <p class="sub">Contrato de dados do Prisma Analyser para tipagem e exibição no frontend</p>
+  <p class="meta">Os exemplos deste documento são saída real do módulo, gerada com o modelo <code>qwen3.5:9b</code> · Setembro de 2026</p>
+</div>
+
+<h2>1. O modelo mental</h2>
+
+<p>A consolidação final produz <strong>um panorama por ator, por mês, por eixo</strong>. Eixo é o
+agrupamento de sentimento da cobertura: <code>positivo</code>, <code>negativo</code> ou
+<code>neutro</code>.</p>
+
+<p>Ou seja, uma tela de "Lula em agosto de 2026" reúne <strong>três registros</strong> — um de cada
+eixo — e não um só. Os três têm exatamente a mesma forma; o que muda é o que o texto reúne.</p>
+
+<pre>ator 122418060191 + janela "2026-08"
+   ├── eixo "negativo"  → 1 panorama (versão mais recente)
+   ├── eixo "positivo"  → 1 panorama (versão mais recente)
+   └── eixo "neutro"    → 1 panorama (versão mais recente)</pre>
+
+<div class="alerta">
+  <span class="rot">Um eixo pode não existir</span>
+  <p>Se nenhuma notícia daquele ator naquele mês foi classificada como positiva, <strong>não há
+  panorama positivo</strong> — não é um objeto vazio, é a ausência do registro. A tela precisa de estado
+  vazio por eixo, não só um estado vazio geral.</p>
+</div>
+
+<h2>2. Tipos TypeScript</h2>
+
+<p>Pronto para copiar. Corresponde ao que o módulo grava hoje.</p>
+
+<pre>export type Eixo = "positivo" | "negativo" | "neutro";
+export type ItemId = string;
+
+export interface TemaContado {
+  tema: string;          // 1 a 4 palavras
+  ocorrencias: number;   // quantas matérias distintas sustentam o tema
+  fontes: ItemId[];      // os ids dessas matérias
+}
+
+export interface Panorama {
+  ator_id: string;       // título eleitoral (político) ou número (partido)
+  janela: string;        // "YYYY-MM"
+  eixo: Eixo;
+  total_itens: number;   // matérias distintas no panorama
+  temas: TemaContado[];  // nunca vazio
+  fontes: ItemId[];      // nunca vazio
+  texto: string;         // o parágrafo consolidado; nunca vazio
+}
+
+export interface RegistroPanorama {
+  ator_id: string;
+  janela: string;
+  eixo: Eixo;
+  versao: number;        // 1, 2, 3... exibir apenas a maior
+  formato: Eixo;         // hoje repete o eixo; ignorar na tela
+  panorama: Panorama;    // <b>o conteúdo fica aqui dentro</b>
+  avisos: string[];      // divergências técnicas de verificação
+  lotes: number;         // métrica operacional, não é contagem de notícias
+  modelo: string;        // ex.: "qwen3.5:9b"
+  hash_prompt_lote: string;
+  hash_prompt_final: string;
+  hash_prompt_formato: string;
+  rodada: string;
+  criado_em: string;     // ISO 8601
+}</pre>
+
+<div class="nota">
+  <span class="rot">Atenção ao aninhamento</span>
+  <p>O conteúdo que vai para a tela está em <code>registro.panorama</code>, não na raiz. Os campos da
+  raiz que também aparecem dentro (<code>ator_id</code>, <code>janela</code>, <code>eixo</code>) são
+  duplicados de propósito, para permitir filtrar sem abrir o objeto aninhado.</p>
+</div>
+
+<h2>3. Campos de <code>Panorama</code> — o que exibir</h2>
+
+<table>
+  <tr><th style="width:15%">Campo</th><th style="width:16%">Tipo</th><th style="width:34%">O que é</th><th>Uso na tela</th></tr>
+  <tr><td><code>texto</code></td><td><code>string</code></td><td><strong>O conteúdo principal.</strong> Parágrafo de 3 a 6 frases, sem ids no meio da prosa. A primeira frase nomeia o recorte ("As críticas registradas pela cobertura do mês…"). Nunca vazio.</td><td>Corpo do painel. Pode ser exibido exatamente como veio — não precisa de tratamento.</td></tr>
+  <tr><td><code>temas</code></td><td><code>TemaContado[]</code></td><td>Assuntos recorrentes, do mais para o menos citado. Nunca vazio.</td><td>Chips, lista ou ranking. <code>ocorrencias</code> é contagem de <strong>matérias</strong>, não de menções.</td></tr>
+  <tr><td><code>total_itens</code></td><td><code>number</code></td><td>Matérias distintas que compõem o panorama. Já normalizado no backend.</td><td>Indicador "N notícias". Não recalcular a partir de <code>fontes</code>.</td></tr>
+  <tr><td><code>fontes</code></td><td><code>ItemId[]</code></td><td>Ids das matérias usadas, sem repetição. <strong>São ids, não URLs.</strong></td><td>Ver a seção 6 — hoje ainda não há como resolvê-los para manchete.</td></tr>
+  <tr><td><code>eixo</code></td><td><code>Eixo</code></td><td>Qual recorte este panorama consolida.</td><td>Aba ou seção. Manter o nome real — não traduzir para "bom/ruim".</td></tr>
+  <tr><td><code>janela</code></td><td><code>string</code></td><td>Mês no formato <code>2026-08</code>.</td><td>Seletor de período.</td></tr>
+  <tr><td><code>ator_id</code></td><td><code>string</code></td><td>Título eleitoral do político ou número do partido.</td><td>Rota da entidade. <strong>Não é o nome</strong> — ver seção 6.</td></tr>
+</table>
+
+<h3>Campos do <code>RegistroPanorama</code> que não vão para a tela comum</h3>
+
+<table>
+  <tr><th style="width:22%">Campo</th><th style="width:20%">Expor?</th><th>Por quê</th></tr>
+  <tr><td><code>versao</code></td><td>Como filtro</td><td>A API deve devolver apenas a maior versão de cada (ator, janela, eixo). Versões antigas existem para auditoria, não para leitura.</td></tr>
+  <tr><td><code>avisos</code></td><td>Com critério</td><td>Mensagens técnicas de verificação, por exemplo uma contagem declarada pelo modelo que não bateu com a lista. Pode virar indicador de qualidade; o texto cru é para operação.</td></tr>
+  <tr><td><code>lotes</code></td><td>Não</td><td>Em <strong>quantos</strong> lotes a consolidação foi dividida. Um lote é um grupo de até 100 resumos enviados numa mesma chamada ao modelo — então o número diz como o trabalho foi fatiado, não o tamanho dele. No exemplo desta página, <code>lotes: 1</code> com <code>total_itens: 4</code> significa que as quatro notícias couberam numa chamada só. Quem conta notícias é <code>total_itens</code>.</td></tr>
+  <tr><td><code>formato</code></td><td>Não</td><td>Hoje repete o <code>eixo</code>. Não serve mais para escolher componente.</td></tr>
+  <tr><td><code>modelo</code>, <code>hash_prompt_*</code>, <code>rodada</code></td><td>Não</td><td>Rastreabilidade técnica. Útil numa tela de auditoria, com autorização própria.</td></tr>
+  <tr><td><code>criado_em</code></td><td>Sim</td><td>Pode alimentar um "atualizado em".</td></tr>
+</table>
+
+<h2 class="quebra">4. Exemplo real</h2>
+
+<p>Saída verdadeira do módulo para o ator <code>122418060191</code> na janela <code>2026-08</code>,
+eixo positivo. Hashes abreviados.</p>
+
+<pre>{
+  "ator_id": "122418060191",
+  "janela": "2026-08",
+  "eixo": "positivo",
+  "versao": 1,
+  "formato": "positivo",
+  "panorama": {
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "eixo": "positivo",
+    "total_itens": 4,
+    "temas": [
+      { "tema": "campanha de reeleição de Lula", "ocorrencias": 2,
+        "fontes": ["art_1559__politico_122418060191", "art_8__politico_122418060191"] },
+      { "tema": "avanço da comissão mista", "ocorrencias": 1,
+        "fontes": ["art_1700__politico_122418060191"] },
+      { "tema": "criação de CPMI", "ocorrencias": 1,
+        "fontes": ["art_1703__politico_122418060191"] },
+      { "tema": "pesquisa eleitoral da BTG/Nexus", "ocorrencias": 1,
+        "fontes": ["art_8__politico_122418060191"] }
+    ],
+    "fontes": ["art_1559__politico_122418060191", "art_1700__politico_122418060191",
+               "art_1703__politico_122418060191", "art_8__politico_122418060191"],
+    "texto": "Os elogios registrados pela cobertura do mês concentram-se na postura
+              estratégica de Luiz Inácio Lula da Silva durante a campanha para sua
+              reeleição ... Por fim, os veículos relatam dados de pesquisas que
+              simulam cenários eleitorais e monitoram as intenções de voto no país."
+  },
+  "avisos": [],
+  "lotes": 1,
+  "modelo": "qwen3.5:9b",
+  "hash_prompt_lote": "dcc15dfbd1d1...",
+  "hash_prompt_final": "5817275523c5...",
+  "hash_prompt_formato": "9f2c4e1a77b0...",
+  "rodada": "rodada_banco_demo_2026_08.json",
+  "criado_em": "2026-09-02T03:01:16+00:00"
+}</pre>
+
+<h3>Como os três eixos aparecem na mesma janela</h3>
+
+<div class="amostra">
+  <p class="eixo neg">Negativo · 4 matérias · 4 temas</p>
+  <p>“As críticas registradas pela cobertura do mês concentram-se em questionamentos sobre a gestão
+  econômica e as alianças políticas do governo federal. O noticiário registra cobranças de que o consumo
+  brasileiro estaria caindo devido ao dinheiro indo para jogos de azar…”</p>
+</div>
+
+<div class="amostra">
+  <p class="eixo pos">Positivo · 4 matérias · 4 temas</p>
+  <p>“Os elogios registrados pela cobertura do mês concentram-se na postura estratégica de Luiz Inácio
+  Lula da Silva durante a campanha para sua reeleição…”</p>
+</div>
+
+<div class="amostra">
+  <p class="eixo neu">Neutro · 4 matérias · 3 temas</p>
+  <p>“O registro factual da cobertura do mês concentra-se em dados eleitorais e movimentações políticas
+  no âmbito do Judiciário. As matérias apresentam resultados de pesquisas que indicam o presidente Lula
+  à frente no primeiro turno…”</p>
+</div>
+
+<h2>5. Regras que a tela precisa respeitar</h2>
+
+<ol>
+  <li><strong>Exibir só a maior <code>versao</code></strong> de cada (ator, janela, eixo). Panoramas são
+  versionados e nunca sobrescritos; mostrar todos duplicaria o conteúdo na tela.</li>
+  <li><strong>Não reescrever o <code>texto</code>.</strong> Ele já vem pronto, sem ids na prosa, e a
+  primeira frase nomeia o recorte de propósito. Cortar ou resumir quebra essa garantia.</li>
+  <li><strong>Manter os nomes dos eixos.</strong> O módulo mede <em>sentimento da cobertura</em>, não
+  posição ideológica. Rotular como "viés" ou "espectro" afirma algo que o dado não sustenta.</li>
+  <li><strong>Tratar <code>ocorrencias</code> como contagem de matérias</strong>, não de menções ou
+  parágrafos.</li>
+  <li><strong>Ter estado vazio por eixo</strong>, porque um eixo pode simplesmente não existir naquela
+  janela.</li>
+</ol>
+
+<h2>6. Identidade do ator e das fontes</h2>
+
+<div class="nota">
+  <span class="rot">O nome do ator vem junto</span>
+  <p>O <code>ator_id</code> na seção 2 é o formato que o <strong>modelo de IA produz</strong>: um único
+  campo de texto, o título eleitoral (<code>122418060191</code>), <strong>que não deve ser
+  exibido</strong>. É a mesma forma usada hoje no arquivo <code>panoramas.json</code> — ainda não existe
+  banco de dados no Analyser, essa parte é proposta.</p>
+  <p>Na tabela que está sendo proposta para o banco, esse identificador <strong>não fica como um campo
+  só</strong>: ele se decompõe em duas colunas tipadas (<code>nr_titulo_eleitoral_candidato</code> para
+  político, <code>nr_partido</code> para partido — sempre uma delas nula), o que permite índice e busca
+  direta no banco. O nome legível ganha coluna própria (<code>ator_nome</code>), e é isso que a API
+  devolve ao frontend — sem exigir que a tela resolva identificador nenhum.</p>
+  <p>O nome guardado é um retrato do momento da geração. Se a carga de entidades for refeita e o nome
+  mudar, o registro antigo preserva o nome com que o texto foi escrito.</p>
+</div>
+
+<div class="alerta">
+  <span class="rot">As fontes não têm manchete nem link</span>
+  <p><code>fontes</code> traz ids como <code>art_1559__politico_122418060191</code>. Para montar uma
+  lista de "notícias que sustentam este panorama" com título, veículo e link, é preciso um endpoint que
+  resolva esses ids.</p>
+  <p>E há uma limitação real a considerar no desenho: <strong>o título da notícia não existe hoje em
+  nenhuma tabela do banco</strong>. O que existe é o link e o veículo. Enquanto o Classifier não
+  persistir o título, uma lista de fontes só pode mostrar veículo e link — não a manchete.</p>
+</div>
+
+<h3>DTO sugerido para a API</h3>
+
+<p>O módulo grava um registro por eixo. A tela quer os três juntos. A agregação é trabalho da API:</p>
+
+<pre>export interface PanoramaDaJanela {
+  ator: { id: string; tipo: "politico" | "partido"; nome: string };
+  janela: string;
+  atualizado_em: string;
+  eixos: Partial&lt;Record&lt;Eixo, {
+    total_itens: number;
+    texto: string;
+    temas: TemaContado[];
+  }&gt;&gt;;                        // <b>Partial: um eixo pode não existir</b>
+  fontes: Array&lt;{
+    item_id: ItemId;
+    veiculo: string | null;
+    url: string | null;
+    data: string | null;
+    titulo: string | null;     // <b>hoje sempre null</b>
+    rotulo: Eixo;
+  }&gt;;
+}</pre>
+
+<h2>7. Campos que foram removidos — não tipar</h2>
+
+<p>Versões anteriores do contrato traziam dois campos que <strong>não existem mais</strong>. Se
+aparecerem em algum documento ou amostra antiga, estão desatualizados:</p>
+
+<table>
+  <tr><th style="width:32%">Campo removido</th><th>O que aconteceu</th></tr>
+  <tr><td><code>fatos_mais_citados</code></td><td>Era uma lista de fatos soltos, cada um com sua descrição e fontes. Os mesmos fatos agora chegam consolidados dentro de <code>texto</code>, em um parágrafo único.</td></tr>
+  <tr><td><code>respostas_registradas</code></td><td>Registrava se a cobertura trazia manifestação de quem foi citado. Foi retirado por decisão de produto: media as manifestações de qualquer citado, não o contraditório do alvo, e o insumo disponível não sustentava a leitura.</td></tr>
+</table>
+
+<div class="nota">
+  <span class="rot">Sobre o que o panorama descreve</span>
+  <p>Todo texto produzido descreve <strong>o que a cobertura registra</strong>, nunca um juízo sobre o
+  ator. É por isso que os parágrafos abrem com "as matérias apontam", "o noticiário registra". A
+  interface deve preservar esse enquadramento: o produto lê o noticiário, não julga quem ele cita.</p>
+</div>
+
+</body>
+</html>

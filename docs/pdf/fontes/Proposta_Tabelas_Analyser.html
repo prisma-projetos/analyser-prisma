@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Proposta de criação de tabelas — Prisma Analyser</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font: 10.5pt/1.55 "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #16191f; margin: 0; }
+  h1 { font-size: 20pt; line-height: 1.2; margin: 0 0 4pt; letter-spacing: -.01em; }
+  h2 { font-size: 13pt; margin: 20pt 0 7pt; padding-bottom: 4pt; border-bottom: 1.5pt solid #16191f; page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14pt 0 5pt; page-break-after: avoid; }
+  p { margin: 0 0 8pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 18pt; }
+  li { margin-bottom: 3pt; }
+  code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 9pt; background: #eef1f5; padding: 1pt 3pt; border-radius: 2pt; }
+  pre { font-family: "Cascadia Mono", Consolas, monospace; font-size: 8.5pt; line-height: 1.45;
+        background: #f6f8fa; border: .5pt solid #d5dae1; border-left: 2.5pt solid #16191f;
+        padding: 8pt 10pt; margin: 0 0 10pt; white-space: pre-wrap; page-break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 12pt; font-size: 9.5pt; page-break-inside: avoid; }
+  th { text-align: left; background: #16191f; color: #fff; padding: 5pt 7pt; font-weight: 600; }
+  td { padding: 5pt 7pt; border-bottom: .5pt solid #d5dae1; vertical-align: top; }
+  tr:nth-child(even) td { background: #f6f8fa; }
+  .capa { border-bottom: 2.5pt solid #16191f; padding-bottom: 12pt; margin-bottom: 6pt; }
+  .sub { color: #5a6472; font-size: 10pt; margin: 0; }
+  .meta { font-size: 9pt; color: #5a6472; margin-top: 8pt; }
+  .destaque { background: #f2f7ff; border: .5pt solid #b9d3f2; border-left: 2.5pt solid #2563a8;
+              padding: 9pt 11pt; margin: 0 0 11pt; page-break-inside: avoid; }
+  .alerta { background: #fff8ee; border: .5pt solid #f0d9ae; border-left: 2.5pt solid #b5791a;
+            padding: 9pt 11pt; margin: 0 0 11pt; page-break-inside: avoid; }
+  .destaque p:last-child, .alerta p:last-child, .destaque ul:last-child, .alerta ul:last-child { margin-bottom: 0; }
+  .rot { font-weight: 700; font-size: 9pt; text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 3pt; }
+  .destaque .rot { color: #2563a8; }
+  .alerta .rot { color: #8a5a12; }
+  .quebra { page-break-before: always; }
+  .nowrap { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <h1>Proposta de criação de tabelas no <code>prisma-dev</code></h1>
+  <p class="sub">Módulo Prisma Analyser — consumo de eventos do Classifier e persistência de resultados</p>
+  <p class="meta">Documento para avaliação do responsável pelo banco de dados · Setembro de 2026</p>
+</div>
+
+<h2>1. O que está sendo pedido</h2>
+
+<p>Criação de <strong>quatro tabelas novas</strong> no banco <code>prisma-dev</code>, todas com o
+prefixo <code>analyser_</code>, e concessão de <strong>leitura</strong> em três tabelas já existentes.</p>
+
+<div class="destaque">
+  <span class="rot">Nenhuma tabela existente é alterada</span>
+  <p>Esta proposta <strong>não</strong> altera, remove ou renomeia coluna alguma de
+  <code>tabela_classificacao</code>, <code>tabela_midia</code>, <code>entidade_matching</code> ou de
+  qualquer outra tabela em uso. Elas são apenas <strong>lidas</strong>. As quatro tabelas novas são de
+  propriedade exclusiva do Analyser e nenhum outro serviço escreve nelas.</p>
+</div>
+
+<table>
+  <tr><th style="width:32%">Objeto</th><th style="width:20%">Operação</th><th>Finalidade</th></tr>
+  <tr><td><code>analyser_inbox_evento</code></td><td>CREATE</td><td>Registrar cada mensagem recebida do Classifier e impedir processamento duplicado.</td></tr>
+  <tr><td><code>analyser_item</code></td><td>CREATE</td><td>Representar uma notícia em relação a um ator, com o rótulo agregado e o resumo.</td></tr>
+  <tr><td><code>analyser_panorama</code></td><td>CREATE</td><td>Guardar as versões do panorama mensal por ator e eixo.</td></tr>
+  <tr><td><code>analyser_execucao</code></td><td>CREATE</td><td>Registrar cada rodada de processamento para auditoria.</td></tr>
+  <tr><td><code>tabela_classificacao</code></td><td>SELECT</td><td>Ler os trechos classificados, o link e a data da notícia.</td></tr>
+  <tr><td><code>tabela_midia</code></td><td>SELECT</td><td>Resolver o nome do veículo a partir de <code>id_midia</code>.</td></tr>
+  <tr><td><code>entidade_matching</code></td><td>SELECT</td><td>Resolver o nome do ator (político ou partido).</td></tr>
+</table>
+
+<h2>2. Por que o Analyser precisa de tabelas próprias</h2>
+
+<p>Hoje o Analyser grava seus resultados em arquivos JSON locais, no padrão
+<em>ler o arquivo inteiro, alterar em memória, reescrever o arquivo inteiro</em>. Isso funciona para um
+protótipo em uma máquina, e deixa de funcionar assim que o módulo passa a consumir uma fila:</p>
+
+<ul>
+  <li><strong>Perda de atualização.</strong> Dois processos que gravem ao mesmo tempo sobrescrevem um ao outro.</li>
+  <li><strong>Sem transação.</strong> Não há como garantir que o evento, o item e o resumo sejam gravados juntos — ou nenhum.</li>
+  <li><strong>Sem confirmação segura.</strong> O consumidor só pode confirmar a mensagem ao RabbitMQ depois que o resultado estiver durável. Com arquivo local, "durável" é frágil.</li>
+  <li><strong>Inacessível à API.</strong> A API Java não tem como consultar arquivos JSON na máquina de um worker.</li>
+</ul>
+
+<h2>3. O descompasso que as tabelas resolvem</h2>
+
+<p>O Classifier trabalha na granularidade <strong>parágrafo × entidade</strong>. O Analyser trabalha na
+granularidade <strong>notícia × ator</strong>. Uma única mensagem sobre um artigo precisa virar vários
+registros — um por ator citado — e cada um deles precisa de <strong>um</strong> rótulo, enquanto a
+mensagem traz vários.</p>
+
+<p>Isso é visível no próprio banco. Em <code>tabela_classificacao</code>, o parágrafo
+<em>“Lula e Flávio Bolsonaro se veem como elite…”</em> do artigo 1 ocupa duas linhas — uma por entidade
+reconhecida. Outro parágrafo do mesmo artigo ocupa cinco.</p>
+
+<pre>Mensagem recebida (artigo 1)
+  classificacoes = [
+    { político Lula,   parágrafo 0, negativo, 1.0 }
+    { político Flávio, parágrafo 0, negativo, 1.0 }
+    { político Lula,   parágrafo 2, negativo, 1.0 }
+    { político Lula,   parágrafo 5, neutro,   0.0 }
+  ]
+
+Vira
+
+  1 linha  em analyser_inbox_evento   (a mensagem)
+  2 linhas em analyser_item           (o artigo visto por Lula; o artigo visto por Flávio)
+  e, no fim do mês, panoramas por ator em analyser_panorama</pre>
+
+<h2>4. Por que cada tabela precisa existir</h2>
+
+<h3>4.1 <code>analyser_inbox_evento</code></h3>
+<p><strong>Impede processamento duplicado.</strong> O RabbitMQ reentrega uma mensagem sempre que a
+confirmação se perde — por queda do processo, timeout ou reconexão. Sem um registro do que já foi
+recebido, a mesma notícia seria resumida e cobrada ao modelo duas vezes.</p>
+<p>A mensagem do Classifier <strong>não traz um identificador próprio de evento</strong>, então a
+deduplicação é feita pelo SHA-256 do corpo da mensagem, guardado com restrição de unicidade.</p>
+<p><strong>Sem esta tabela:</strong> duplicação silenciosa de itens e custo de modelo pago duas vezes,
+sem forma de detectar.</p>
+
+<h3>4.2 <code>analyser_item</code></h3>
+<p><strong>É a unidade de trabalho do Analyser.</strong> Uma linha por artigo × ator, com o rótulo
+único derivado dos trechos e o resumo produzido pelo modelo — <strong>resumo dos trechos
+classificados para aquele ator, nunca do artigo inteiro</strong> (a limitação está detalhada na
+seção 7). A chave é composta — <code>art_1__politico_122418060191</code> — porque o mesmo artigo
+cita vários atores, cada um com um ou mais trechos próprios: <strong>a linha cresce por ator,
+nunca por classificação</strong>. Um resumo escrito a partir do recorte de um ator não serve
+para o outro.</p>
+<p><strong>Sem esta tabela:</strong> não há onde guardar o resumo, que é o produto mais caro do módulo,
+nem como reaproveitá-lo quando o mesmo artigo reaparecer para o mesmo ator.</p>
+
+<h3>4.3 <code>analyser_panorama</code></h3>
+<p><strong>É o produto final, o que o cidadão lê.</strong> Um parágrafo consolidado por ator, mês e eixo
+(positivo, negativo, neutro). É a tabela que a API Java vai consultar.</p>
+<p>Panoramas são <strong>versionados e nunca sobrescritos</strong>: cada recálculo cria uma versão nova e
+as anteriores permanecem para auditoria. A API expõe apenas a versão mais alta.</p>
+<p><strong>Sem esta tabela:</strong> não há o que entregar à API nem ao frontend.</p>
+
+<h3>4.4 <code>analyser_execucao</code></h3>
+<p><strong>Torna cada rodada auditável.</strong> Registra quantos eventos, itens, resumos e panoramas
+foram processados, qual modelo respondeu, quais prompts foram usados (por hash) e quais erros
+ocorreram. É o único dado que atravessa vários itens e vários panoramas, e por isso não cabe em
+nenhuma das outras três.</p>
+<p><strong>Sem esta tabela:</strong> perde-se a contagem real da rodada, os erros e a rastreabilidade de
+qual versão de prompt gerou qual resultado.</p>
+
+<h2 class="quebra">5. Impacto operacional</h2>
+
+<h3>5.1 Volume e crescimento</h3>
+
+<table>
+  <tr><th style="width:30%">Tabela</th><th style="width:34%">Cresce a cada</th><th>Observação</th></tr>
+  <tr><td><code>analyser_inbox_evento</code></td><td>mensagem recebida</td><td>Uma linha por artigo classificado. Guarda o JSON original da mensagem.</td></tr>
+  <tr><td><code>analyser_item</code></td><td>notícia × ator</td><td>Um artigo que cita cinco atores gera cinco linhas — uma por ator, não uma por classificação recebida.</td></tr>
+  <tr><td><code>analyser_panorama</code></td><td>recálculo de janela</td><td><strong>Ponto de atenção — ver abaixo.</strong></td></tr>
+  <tr><td><code>analyser_execucao</code></td><td>rodada de processamento</td><td>Volume baixo.</td></tr>
+</table>
+
+<div class="alerta">
+  <span class="rot">Crescimento de analyser_panorama</span>
+  <p>Um panorama é recalculado sempre que uma notícia inédita entra na janela daquele ator e mês, e cada
+  recálculo grava <strong>três linhas</strong> (uma por eixo) sem apagar as anteriores. Um ator com muita
+  cobertura num mês movimentado acumula dezenas de versões.</p>
+  <p>Isso é intencional — o versionamento é o que permite auditar o que foi publicado numa data —, mas
+  precisa de uma <strong>política de retenção</strong>. A sugestão é manter todas as versões por um
+  período definido e depois preservar apenas a mais recente de cada combinação
+  (ator, janela, eixo). Essa política é uma decisão que cabe ao responsável pelo banco.</p>
+</div>
+
+<h3>5.2 Permissões necessárias</h3>
+<ul>
+  <li><code>CREATE</code> no schema onde as tabelas serão criadas;</li>
+  <li><code>SELECT</code> em <code>tabela_classificacao</code>, <code>tabela_midia</code> e <code>entidade_matching</code>;</li>
+  <li><code>SELECT</code>, <code>INSERT</code> e <code>UPDATE</code> nas quatro tabelas <code>analyser_*</code>;</li>
+  <li>nenhuma permissão de <code>DELETE</code>, <code>ALTER</code> ou <code>DROP</code> sobre tabelas existentes.</li>
+</ul>
+<p>Se for preferível isolar, as quatro tabelas podem viver num schema próprio (<code>analyser</code>) em
+vez de <code>public</code>. Isso simplifica as permissões e deixa a separação de propriedade explícita.</p>
+
+<h3>5.3 Concorrência</h3>
+<p>O processamento usa <code>pg_advisory_xact_lock</code> por (ator, janela) antes de calcular a próxima
+versão do panorama, para que dois workers não publiquem versões conflitantes. Não há bloqueio de tabela
+e nenhuma tabela existente é envolvida na transação de escrita.</p>
+
+<h2>6. Duas colunas que ajudariam, se forem viáveis</h2>
+
+<p>As duas são <strong>opcionais</strong>. A proposta funciona sem elas, com as limitações descritas.</p>
+
+<h3>6.1 <code>tabela_classificacao.paragraph_index</code></h3>
+<p>A mensagem do Classifier informa o índice do parágrafo de cada classificação, mas
+<code>tabela_classificacao</code> não persiste esse índice. Consequência: ao ler os trechos no banco, o
+Analyser <strong>não consegue afirmar com certeza</strong> qual linha corresponde a qual parágrafo — a
+ordem é inferida pela sequência de <code>id_classificacao</code>.</p>
+<p>Uma coluna anulável resolveria isso de forma definitiva. O Classifier já tem o valor em mãos no
+momento em que grava a linha; registros históricos permaneceriam nulos.</p>
+
+<h3>6.2 <code>tabela_classificacao.titulo</code></h3>
+<p>O título da notícia não existe em nenhuma tabela do <code>prisma-dev</code>. O Classifier o recebe do
+Scraper na mensagem de entrada, usa e descarta sem persistir. Como o Analyser não tem acesso ao banco do
+Scraper, ele monta um título sintético do tipo <em>“Artigo 408 — trechos classificados sobre …”</em>.</p>
+<p>Isso degrada o resumo, porque a manchete costuma ser a informação mais densa de uma notícia. Uma
+coluna anulável preenchida pelo Classifier resolveria para artigos novos; históricos permaneceriam nulos,
+já que o backfill exigiria o banco do Scraper.</p>
+
+<h2>7. Limitação que permanece de qualquer forma</h2>
+
+<p>O Analyser resume <strong>apenas os trechos classificados</strong>, nunca a notícia inteira, porque é
+só isso que existe no <code>prisma-dev</code>. Os trechos são descontínuos: numa amostra real, um artigo
+contribuiu com os parágrafos 4, 7 e 8, e outro pulou do 4 para o 15.</p>
+<p>Isso é conhecido e está documentado. O ponto a registrar é que a decisão de manter o Analyser lendo
+apenas o <code>prisma-dev</code> — em vez de também o banco do Scraper — implica aceitar essa limitação
+de forma permanente.</p>
+
+<h2>8. Decisões que cabem ao responsável pelo banco</h2>
+
+<ol>
+  <li>As quatro tabelas ficam em <code>public</code> ou num schema <code>analyser</code> próprio?</li>
+  <li>Qual repositório versiona as migrations dessas tabelas?</li>
+  <li>Qual a política de retenção de <code>analyser_panorama</code> (versões antigas) e de
+      <code>analyser_inbox_evento</code> (que guarda texto de terceiros no payload)?</li>
+  <li>As colunas opcionais da seção 6 são viáveis? Elas exigem alteração no Classifier.</li>
+  <li>Qual usuário de banco o Analyser deve usar, e com quais permissões?</li>
+</ol>
+
+<p>O detalhamento de cada coluna, com tipo, obrigatoriedade e descrição, está no documento
+<strong>Dicionário de Dados — Tabelas do Prisma Analyser</strong>, que acompanha esta proposta.</p>
+
+</body>
+</html>

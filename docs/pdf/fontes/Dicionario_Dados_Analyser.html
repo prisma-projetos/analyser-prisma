@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Dicionário de Dados — Tabelas do Prisma Analyser</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font: 10pt/1.5 "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #16191f; margin: 0; }
+  h1 { font-size: 19pt; line-height: 1.2; margin: 0 0 4pt; letter-spacing: -.01em; }
+  h2 { font-size: 12.5pt; margin: 18pt 0 3pt; padding-bottom: 4pt; border-bottom: 1.5pt solid #16191f; page-break-after: avoid; }
+  h3 { font-size: 10.5pt; margin: 12pt 0 5pt; page-break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  ul { margin: 0 0 7pt; padding-left: 16pt; }
+  li { margin-bottom: 2.5pt; }
+  code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 8.5pt; background: #eef1f5; padding: 1pt 3pt; border-radius: 2pt; }
+  pre { font-family: "Cascadia Mono", Consolas, monospace; font-size: 8pt; line-height: 1.42;
+        background: #f6f8fa; border: .5pt solid #d5dae1; border-left: 2.5pt solid #16191f;
+        padding: 8pt 10pt; margin: 0 0 10pt; white-space: pre-wrap; page-break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 10pt; font-size: 8.6pt; }
+  th { text-align: left; background: #16191f; color: #fff; padding: 4pt 6pt; font-weight: 600; }
+  td { padding: 4pt 6pt; border-bottom: .5pt solid #d5dae1; vertical-align: top; }
+  tr:nth-child(even) td { background: #f6f8fa; }
+  td code { font-size: 8pt; background: none; padding: 0; }
+  .col { width: 21%; } .tip { width: 15%; } .nul { width: 7%; } .cha { width: 8%; }
+  .capa { border-bottom: 2.5pt solid #16191f; padding-bottom: 11pt; margin-bottom: 8pt; }
+  .sub { color: #5a6472; font-size: 9.5pt; margin: 0; }
+  .meta { font-size: 8.5pt; color: #5a6472; margin-top: 7pt; }
+  .desc { color: #5a6472; font-size: 9.5pt; margin: 0 0 9pt; }
+  .nota { background: #f2f7ff; border: .5pt solid #b9d3f2; border-left: 2.5pt solid #2563a8;
+          padding: 8pt 10pt; margin: 0 0 10pt; font-size: 9.3pt; page-break-inside: avoid; }
+  .nota p:last-child { margin-bottom: 0; }
+  .rot { font-weight: 700; font-size: 8.3pt; text-transform: uppercase; letter-spacing: .06em;
+         display: block; margin-bottom: 3pt; color: #2563a8; }
+  .pk { font-weight: 700; }
+  .quebra { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <h1>Dicionário de Dados — Tabelas do Prisma Analyser</h1>
+  <p class="sub">Quatro tabelas propostas para o banco <code>prisma-dev</code></p>
+  <p class="meta">Documento complementar à Proposta de criação de tabelas · Setembro de 2026</p>
+</div>
+
+<h2>Convenções</h2>
+<ul>
+  <li><strong>Nulo:</strong> se a coluna aceita ausência de valor. <em>Não</em> significa <code>NOT NULL</code> — o banco recusa a gravação sem valor. <em>Sim</em> significa que o campo pode ficar vazio, por um de três motivos: o dado ainda não existe (o <code>resumo</code>, antes de o modelo responder), não se aplica àquela linha (<code>nr_partido</code> num item de político) ou pode faltar na origem (<code>id_midia</code>, quando o artigo não tem veículo associado).</li>
+  <li><strong>Chave:</strong> PK = chave primária, FK = chave estrangeira, UQ = restrição de unicidade, IX = indexado.</li>
+  <li><strong>Hashes</strong> são SHA-256 em hexadecimal minúsculo, sempre 64 caracteres.</li>
+  <li><strong>Timestamps</strong> usam <code>TIMESTAMPTZ</code> (com fuso), gravados em UTC.</li>
+  <li><strong>Eixo</strong> e <strong>rótulo</strong> assumem exatamente três valores: <code>positivo</code>, <code>negativo</code>, <code>neutro</code>.</li>
+  <li>Colunas <code>*_json</code> usam <code>JSONB</code>.</li>
+</ul>
+
+<div class="nota">
+  <span class="rot">Identificação do ator</span>
+  <p>O ator é sempre representado por <code>entity_type</code> mais <strong>um</strong> de dois campos:
+  <code>nr_titulo_eleitoral_candidato</code> quando é político, <code>nr_partido</code> quando é partido.
+  O outro fica nulo. É a mesma convenção já usada em <code>tabela_classificacao</code>, e as tabelas do
+  Analyser trazem uma restrição <code>CHECK</code> que garante que exatamente um dos dois esteja
+  preenchido.</p>
+</div>
+
+<h2>1. <code>analyser_inbox_evento</code></h2>
+<p class="desc">Uma linha por mensagem recebida do Classifier. Impede que a mesma mensagem seja
+processada duas vezes e permite reprocessar depois sem pedir nada ao Classifier.</p>
+
+<table>
+  <tr><th class="col">Coluna</th><th class="tip">Tipo</th><th class="nul">Nulo</th><th class="cha">Chave</th><th>Descrição</th></tr>
+  <tr><td class="pk"><code>evento_id</code></td><td><code>BIGSERIAL</code></td><td>não</td><td>PK</td><td>Identificador sequencial da linha.</td></tr>
+  <tr><td><code>payload_hash</code></td><td><code>CHAR(64)</code></td><td>não</td><td>UQ</td><td>SHA-256 do corpo da mensagem. É o mecanismo de deduplicação: a mensagem do Classifier não traz identificador próprio, então o hash faz esse papel. Uma reentrega do RabbitMQ colide aqui e não vira segunda linha.</td></tr>
+  <tr><td><code>article_id</code></td><td><code>BIGINT</code></td><td>não</td><td>IX</td><td>Identificador do artigo no Scraper. Corresponde a <code>tabela_classificacao.id_artigo_scrape</code>.</td></tr>
+  <tr><td><code>pipeline_version</code></td><td><code>VARCHAR(50)</code></td><td>não</td><td>IX</td><td>Versão do pipeline que classificou o artigo. Junto com <code>article_id</code>, localiza as linhas de classificação correspondentes.</td></tr>
+  <tr><td><code>payload_json</code></td><td><code>JSONB</code></td><td>não</td><td></td><td>A mensagem inteira, como chegou. Guarda também <code>schema_version</code>, <code>job_id</code> e <code>notificado_em</code>, que não viram coluna porque raramente são filtrados. Permite reprocessar sem depender do Classifier.</td></tr>
+  <tr><td><code>status</code></td><td><code>VARCHAR(20)</code></td><td>não</td><td>IX</td><td><code>recebido</code>, <code>processado</code>, <code>rejeitado</code> ou <code>erro</code>. Padrão <code>recebido</code>.</td></tr>
+  <tr><td><code>tentativas</code></td><td><code>INT</code></td><td>não</td><td></td><td>Quantas vezes o processamento foi tentado. Alimenta o limite antes de a mensagem ir para a fila de descarte.</td></tr>
+  <tr><td><code>recebido_em</code></td><td><code>TIMESTAMPTZ</code></td><td>não</td><td></td><td>Momento da gravação da linha. Padrão <code>now()</code>.</td></tr>
+  <tr><td><code>processado_em</code></td><td><code>TIMESTAMPTZ</code></td><td>sim</td><td></td><td>Momento em que o processamento terminou com sucesso.</td></tr>
+  <tr><td><code>erro</code></td><td><code>TEXT</code></td><td>sim</td><td></td><td>Mensagem da última falha, quando houver.</td></tr>
+</table>
+
+<h2>2. <code>analyser_item</code></h2>
+<p class="desc">Uma linha por artigo × ator, já com o resumo — <strong>dos trechos classificados
+para aquele ator, nunca do artigo inteiro</strong>. É a unidade de trabalho do Analyser: um artigo
+que cita cinco atores gera cinco linhas — <strong>uma por ator, nunca uma por classificação</strong>.
+Um mesmo ator pode ter sido classificado em vários parágrafos, e todas essas classificações entram
+na mesma linha (ver <code>trechos_json</code> abaixo); os parágrafos que falam de um ator não são
+os mesmos que falam de outro, e um resumo escrito a partir de um recorte não serve para o outro.</p>
+
+<table>
+  <tr><th class="col">Coluna</th><th class="tip">Tipo</th><th class="nul">Nulo</th><th class="cha">Chave</th><th>Descrição</th></tr>
+  <tr><td class="pk"><code>item_id</code></td><td><code>TEXT</code></td><td>não</td><td>PK</td><td>Identificador composto por artigo e ator, no formato <code>art_1__politico_122418060191</code>. Não inclui a versão do pipeline: uma reclassificação do mesmo artigo atualiza a mesma linha.</td></tr>
+  <tr><td><code>evento_id</code></td><td><code>BIGINT</code></td><td>não</td><td>FK</td><td>Mensagem que originou o item. Referencia <code>analyser_inbox_evento</code>.</td></tr>
+  <tr><td><code>article_id</code></td><td><code>BIGINT</code></td><td>não</td><td>IX</td><td>Artigo no Scraper. Permite voltar a <code>tabela_classificacao</code>.</td></tr>
+  <tr><td><code>entity_type</code></td><td><code>VARCHAR(20)</code></td><td>não</td><td>IX</td><td><code>politico</code> ou <code>partido</code>.</td></tr>
+  <tr><td><code>nr_titulo_eleitoral_candidato</code></td><td><code>VARCHAR(20)</code></td><td>sim</td><td>IX</td><td>Título eleitoral do político. Nulo quando o item é de partido.</td></tr>
+  <tr><td><code>nr_partido</code></td><td><code>INT</code></td><td>sim</td><td>IX</td><td>Número do partido. Nulo quando o item é de político.</td></tr>
+  <tr><td><code>ator_nome</code></td><td><code>VARCHAR(255)</code></td><td>não</td><td></td><td>Nome do ator no momento em que a linha foi gravada, lido de <code>entidade_matching.nome_principal</code>. É um <strong>retrato</strong>, não um espelho: se a carga do TSE for refeita e o nome mudar, esta coluna preserva o que foi usado na geração do texto. Para o nome corrente, a API consulta <code>entidade_matching</code>. Este é o nome que entrou no prompt do resumo.</td></tr>
+  <tr><td><code>id_midia</code></td><td><code>INT</code></td><td>sim</td><td></td><td>Veículo, copiado da classificação. Nulo quando o artigo não tem mídia associada — situação real e aceita.</td></tr>
+  <tr><td><code>link_noticia</code></td><td><code>TEXT</code></td><td>sim</td><td></td><td>URL da notícia.</td></tr>
+  <tr><td><code>data_publicacao</code></td><td><code>TIMESTAMPTZ</code></td><td>sim</td><td></td><td>Data de publicação informada pelo Classifier.</td></tr>
+  <tr><td><code>janela_mes</code></td><td><code>CHAR(7)</code></td><td>não</td><td>IX</td><td>Mês de agrupamento no formato <code>2026-08</code>. Derivado da data de publicação e usado para montar o panorama.</td></tr>
+  <tr><td><code>rotulo_definitivo</code></td><td><code>VARCHAR(10)</code></td><td>não</td><td></td><td>Um único rótulo para este item — os trechos do artigo que citam este ator —, calculado a partir deles. Não é o sentimento do artigo inteiro, só da parte que fala dele. É definitivo: se o mesmo item reaparecer com rótulo diferente, o evento é rejeitado em vez de sobrescrito.</td></tr>
+  <tr><td><code>regra_agregacao_versao</code></td><td><code>VARCHAR(30)</code></td><td>não</td><td></td><td>Identifica a regra que produziu o rótulo, por exemplo <code>maioria-v1</code>. Sem isto, trocar a regra no futuro tornaria os rótulos antigos incomparáveis com os novos.</td></tr>
+  <tr><td><code>trechos_json</code></td><td><code>JSONB</code></td><td>não</td><td></td><td>As classificações recebidas para este ator, uma entrada por trecho. Ver detalhamento abaixo.</td></tr>
+  <tr><td><code>conteudo_hash</code></td><td><code>CHAR(64)</code></td><td>não</td><td>IX</td><td>SHA-256 do título mais o texto que foi enviado ao modelo. Se o insumo mudar sob o mesmo <code>item_id</code>, o hash muda e o resumo é refeito em vez de reaproveitado.</td></tr>
+  <tr><td><code>resumo</code></td><td><code>TEXT</code></td><td>sim</td><td></td><td>Resumo de 2 a 3 frases produzido pelo modelo. Nulo entre a criação do item e a chamada ao modelo.</td></tr>
+  <tr><td><code>temas_json</code></td><td><code>JSONB</code></td><td>sim</td><td></td><td>Lista de temas curtos extraídos junto com o resumo.</td></tr>
+  <tr><td><code>modelo</code></td><td><code>VARCHAR(100)</code></td><td>sim</td><td></td><td>Modelo que produziu o resumo, por exemplo <code>qwen3.5:9b</code>.</td></tr>
+  <tr><td><code>hash_prompt_resumo</code></td><td><code>CHAR(64)</code></td><td>sim</td><td></td><td>SHA-256 do prompt usado. Permite reproduzir a execução sabendo exatamente qual texto de instrução a gerou.</td></tr>
+  <tr><td><code>resumido_em</code></td><td><code>TIMESTAMPTZ</code></td><td>sim</td><td></td><td>Momento em que o resumo foi gravado.</td></tr>
+  <tr><td><code>status</code></td><td><code>VARCHAR(20)</code></td><td>não</td><td></td><td><code>novo</code>, <code>resumido</code> ou <code>erro</code>.</td></tr>
+  <tr><td><code>criado_em</code></td><td><code>TIMESTAMPTZ</code></td><td>não</td><td></td><td>Criação da linha.</td></tr>
+  <tr><td><code>atualizado_em</code></td><td><code>TIMESTAMPTZ</code></td><td>não</td><td></td><td>Última alteração.</td></tr>
+</table>
+
+<h3>Conteúdo de <code>trechos_json</code></h3>
+<p>Array de objetos, um por classificação recebida para aquele ator naquele artigo:</p>
+<pre>[{"paragraph_index": 0, "classificacao_sentimento": "negativo", "score_confianca": 1.0},
+ {"paragraph_index": 2, "classificacao_sentimento": "negativo", "score_confianca": 1.0},
+ {"paragraph_index": 5, "classificacao_sentimento": "neutro",   "score_confianca": 0.0}]</pre>
+
+<div class="nota">
+  <span class="rot">Por que este campo existe</span>
+  <p>É a conta que produziu o <code>rotulo_definitivo</code>: no exemplo acima, dois negativos contra um
+  neutro resultam em <code>negativo</code>. Sem ele, a pergunta “por que este item é negativo?” não tem
+  resposta.</p>
+  <p>Mais importante: <strong><code>paragraph_index</code> não é coluna de
+  <code>tabela_classificacao</code></strong>. Ele só existe na mensagem do RabbitMQ e no payload do
+  outbox do Classifier. Se o Analyser não o guardar aqui, o dado desaparece quando aquele outbox for
+  expurgado — e com ele a única forma de saber a que parágrafo cada classificação se referia.</p>
+  <p>O texto do parágrafo <strong>não</strong> é copiado: ele já está em
+  <code>tabela_classificacao.paragrafo_analisado</code>, e duplicá-lo dobraria o maior conteúdo textual
+  do banco sem acrescentar informação.</p>
+</div>
+
+<h2 class="quebra">3. <code>analyser_panorama</code></h2>
+<p class="desc">Todas as versões dos panoramas mensais. Um panorama é o texto consolidado de um ator,
+num mês, num eixo — é o produto que a API entrega ao frontend.</p>
+
+<table>
+  <tr><th class="col">Coluna</th><th class="tip">Tipo</th><th class="nul">Nulo</th><th class="cha">Chave</th><th>Descrição</th></tr>
+  <tr><td class="pk"><code>panorama_id</code></td><td><code>BIGSERIAL</code></td><td>não</td><td>PK</td><td>Identificador sequencial da linha.</td></tr>
+  <tr><td><code>execucao_id</code></td><td><code>BIGINT</code></td><td>sim</td><td>FK</td><td>Rodada que gerou este panorama. Referencia <code>analyser_execucao</code>.</td></tr>
+  <tr><td><code>entity_type</code></td><td><code>VARCHAR(20)</code></td><td>não</td><td>UQ</td><td><code>politico</code> ou <code>partido</code>.</td></tr>
+  <tr><td><code>nr_titulo_eleitoral_candidato</code></td><td><code>VARCHAR(20)</code></td><td>sim</td><td>UQ</td><td>Político. Nulo quando o panorama é de partido.</td></tr>
+  <tr><td><code>nr_partido</code></td><td><code>INT</code></td><td>sim</td><td>UQ</td><td>Partido. Nulo quando o panorama é de político.</td></tr>
+  <tr><td><code>ator_nome</code></td><td><code>VARCHAR(255)</code></td><td>não</td><td></td><td>Nome do ator no momento em que a linha foi gravada, lido de <code>entidade_matching.nome_principal</code>. É um <strong>retrato</strong>, não um espelho: se a carga do TSE for refeita e o nome mudar, esta coluna preserva o que foi usado na geração do texto. Para o nome corrente, a API consulta <code>entidade_matching</code>.</td></tr>
+  <tr><td><code>janela_mes</code></td><td><code>CHAR(7)</code></td><td>não</td><td>UQ</td><td>Mês do panorama, formato <code>2026-08</code>.</td></tr>
+  <tr><td><code>eixo</code></td><td><code>VARCHAR(10)</code></td><td>não</td><td>UQ</td><td><code>positivo</code>, <code>negativo</code> ou <code>neutro</code>.</td></tr>
+  <tr><td><code>versao</code></td><td><code>INT</code></td><td>não</td><td>UQ</td><td>Começa em 1 e cresce a cada recálculo. Versões anteriores nunca são apagadas nem sobrescritas; a API expõe apenas a maior.</td></tr>
+  <tr><td><code>formato</code></td><td><code>VARCHAR(20)</code></td><td>não</td><td></td><td>Nome do fragmento de instrução usado. Atualmente repete o valor de <code>eixo</code>; mantido por compatibilidade de contrato.</td></tr>
+  <tr><td><code>total_itens</code></td><td><code>INT</code></td><td>não</td><td></td><td>Quantas notícias distintas compõem o panorama.</td></tr>
+  <tr><td><code>texto</code></td><td><code>TEXT</code></td><td>não</td><td></td><td>O parágrafo consolidado. É o conteúdo lido pelo cidadão e nunca é vazio.</td></tr>
+  <tr><td><code>temas_json</code></td><td><code>JSONB</code></td><td>não</td><td></td><td>Temas com o nome, a contagem de matérias e os <code>item_id</code> que sustentam cada um.</td></tr>
+  <tr><td><code>fontes_json</code></td><td><code>JSONB</code></td><td>não</td><td></td><td>Lista dos <code>item_id</code> que compõem o panorama. É a rastreabilidade de volta às notícias.</td></tr>
+  <tr><td><code>avisos_json</code></td><td><code>JSONB</code></td><td>não</td><td></td><td>Divergências detectadas na verificação e registradas sem correção, por exemplo uma contagem declarada pelo modelo que não bate com a lista. Padrão <code>[]</code>.</td></tr>
+  <tr><td><code>quantidade_lotes</code></td><td><code>INT</code></td><td>não</td><td></td><td>Em quantos lotes a consolidação foi dividida.</td></tr>
+  <tr><td><code>modelo</code></td><td><code>VARCHAR(100)</code></td><td>sim</td><td></td><td>Modelo que gerou o texto.</td></tr>
+  <tr><td><code>hashes_prompts_json</code></td><td><code>JSONB</code></td><td>sim</td><td></td><td>SHA-256 de cada prompt usado, por nome de arquivo. Permite reproduzir a execução.</td></tr>
+  <tr><td><code>criado_em</code></td><td><code>TIMESTAMPTZ</code></td><td>não</td><td></td><td>Criação da linha.</td></tr>
+  <tr><td><code>publicado_em</code></td><td><code>TIMESTAMPTZ</code></td><td>sim</td><td></td><td>Momento em que a versão passou a ser exibida publicamente.</td></tr>
+</table>
+
+<h2>4. <code>analyser_execucao</code></h2>
+<p class="desc">Uma linha por rodada de processamento. É o único registro que atravessa vários itens e
+vários panoramas, e por isso não cabe nas outras tabelas.</p>
+
+<table>
+  <tr><th class="col">Coluna</th><th class="tip">Tipo</th><th class="nul">Nulo</th><th class="cha">Chave</th><th>Descrição</th></tr>
+  <tr><td class="pk"><code>execucao_id</code></td><td><code>BIGSERIAL</code></td><td>não</td><td>PK</td><td>Identificador sequencial da rodada.</td></tr>
+  <tr><td><code>numero_execucao</code></td><td><code>INT</code></td><td>não</td><td></td><td>Número sequencial legível da rodada.</td></tr>
+  <tr><td><code>status</code></td><td><code>VARCHAR(20)</code></td><td>não</td><td></td><td><code>em_andamento</code>, <code>concluida</code> ou <code>falhou</code>.</td></tr>
+  <tr><td><code>capacidade_lote</code></td><td><code>INT</code></td><td>não</td><td></td><td>Teto de itens por lote configurado para a rodada. É o limite, não a quantidade processada — a distinção é registrada de propósito.</td></tr>
+  <tr><td><code>quantidade_eventos</code></td><td><code>INT</code></td><td>não</td><td></td><td>Eventos processados na rodada.</td></tr>
+  <tr><td><code>quantidade_itens</code></td><td><code>INT</code></td><td>não</td><td></td><td>Itens criados ou atualizados.</td></tr>
+  <tr><td><code>quantidade_resumos</code></td><td><code>INT</code></td><td>não</td><td></td><td>Resumos efetivamente pedidos ao modelo. A diferença para <code>quantidade_itens</code> é o que foi reaproveitado do cache.</td></tr>
+  <tr><td><code>quantidade_panoramas</code></td><td><code>INT</code></td><td>não</td><td></td><td>Panoramas gravados.</td></tr>
+  <tr><td><code>modelo</code></td><td><code>VARCHAR(100)</code></td><td>sim</td><td></td><td>Modelo usado na rodada.</td></tr>
+  <tr><td><code>iniciado_em</code></td><td><code>TIMESTAMPTZ</code></td><td>não</td><td></td><td>Início da rodada.</td></tr>
+  <tr><td><code>finalizado_em</code></td><td><code>TIMESTAMPTZ</code></td><td>sim</td><td></td><td>Fim da rodada.</td></tr>
+  <tr><td><code>auditoria_json</code></td><td><code>JSONB</code></td><td>sim</td><td></td><td>Registro completo da auditoria: ids de entrada, ids vindos do cache, tokens consumidos, hashes de prompt e erros.</td></tr>
+  <tr><td><code>erro</code></td><td><code>TEXT</code></td><td>sim</td><td></td><td>Falha da rodada, quando houver.</td></tr>
+</table>
+
+<h2 class="quebra">5. DDL proposta</h2>
+
+<p>Sujeita a ajuste de tipos e de schema conforme a orientação do responsável pelo banco.</p>
+
+<pre>CREATE TABLE analyser_inbox_evento (
+    evento_id        BIGSERIAL   PRIMARY KEY,
+    payload_hash     CHAR(64)    NOT NULL UNIQUE,
+    article_id       BIGINT      NOT NULL,
+    pipeline_version VARCHAR(50) NOT NULL,
+    payload_json     JSONB       NOT NULL,
+    status           VARCHAR(20) NOT NULL DEFAULT 'recebido'
+                     CHECK (status IN ('recebido','processado','rejeitado','erro')),
+    tentativas       INT         NOT NULL DEFAULT 0,
+    recebido_em      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    processado_em    TIMESTAMPTZ,
+    erro             TEXT
+);
+CREATE INDEX ix_analyser_inbox_artigo  ON analyser_inbox_evento (article_id, pipeline_version);
+CREATE INDEX ix_analyser_inbox_pendente ON analyser_inbox_evento (status)
+    WHERE status &lt;&gt; 'processado';
+
+CREATE TABLE analyser_item (
+    item_id                       TEXT        PRIMARY KEY,
+    evento_id                     BIGINT      NOT NULL REFERENCES analyser_inbox_evento (evento_id),
+    article_id                    BIGINT      NOT NULL,
+    entity_type                   VARCHAR(20) NOT NULL
+                                  CHECK (entity_type IN ('politico','partido')),
+    nr_titulo_eleitoral_candidato VARCHAR(20),
+    nr_partido                    INT,
+    ator_nome                     VARCHAR(255) NOT NULL,
+    id_midia                      INT,
+    link_noticia                  TEXT,
+    data_publicacao               TIMESTAMPTZ,
+    janela_mes                    CHAR(7)     NOT NULL,
+    rotulo_definitivo             VARCHAR(10) NOT NULL
+                                  CHECK (rotulo_definitivo IN ('positivo','negativo','neutro')),
+    regra_agregacao_versao        VARCHAR(30) NOT NULL,
+    trechos_json                  JSONB       NOT NULL,
+    conteudo_hash                 CHAR(64)    NOT NULL,
+    resumo                        TEXT,
+    temas_json                    JSONB,
+    modelo                        VARCHAR(100),
+    hash_prompt_resumo            CHAR(64),
+    resumido_em                   TIMESTAMPTZ,
+    status                        VARCHAR(20) NOT NULL DEFAULT 'novo',
+    criado_em                     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    atualizado_em                 TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_analyser_item_uma_entidade
+        CHECK (num_nonnulls(nr_titulo_eleitoral_candidato, nr_partido) = 1)
+);
+CREATE INDEX ix_analyser_item_janela ON analyser_item
+    (janela_mes, entity_type, nr_titulo_eleitoral_candidato, nr_partido);
+CREATE INDEX ix_analyser_item_artigo ON analyser_item (article_id);
+
+CREATE TABLE analyser_execucao (
+    execucao_id          BIGSERIAL   PRIMARY KEY,
+    numero_execucao      INT         NOT NULL,
+    status               VARCHAR(20) NOT NULL
+                         CHECK (status IN ('em_andamento','concluida','falhou')),
+    capacidade_lote      INT         NOT NULL,
+    quantidade_eventos   INT         NOT NULL DEFAULT 0,
+    quantidade_itens     INT         NOT NULL DEFAULT 0,
+    quantidade_resumos   INT         NOT NULL DEFAULT 0,
+    quantidade_panoramas INT         NOT NULL DEFAULT 0,
+    modelo               VARCHAR(100),
+    iniciado_em          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finalizado_em        TIMESTAMPTZ,
+    auditoria_json       JSONB,
+    erro                 TEXT
+);
+
+CREATE TABLE analyser_panorama (
+    panorama_id                   BIGSERIAL   PRIMARY KEY,
+    execucao_id                   BIGINT      REFERENCES analyser_execucao (execucao_id),
+    entity_type                   VARCHAR(20) NOT NULL
+                                  CHECK (entity_type IN ('politico','partido')),
+    nr_titulo_eleitoral_candidato VARCHAR(20),
+    nr_partido                    INT,
+    ator_nome                     VARCHAR(255) NOT NULL,
+    janela_mes                    CHAR(7)     NOT NULL,
+    eixo                          VARCHAR(10) NOT NULL
+                                  CHECK (eixo IN ('positivo','negativo','neutro')),
+    versao                        INT         NOT NULL CHECK (versao &gt;= 1),
+    formato                       VARCHAR(20) NOT NULL,
+    total_itens                   INT         NOT NULL,
+    texto                         TEXT        NOT NULL,
+    temas_json                    JSONB       NOT NULL,
+    fontes_json                   JSONB       NOT NULL,
+    avisos_json                   JSONB       NOT NULL DEFAULT '[]'::jsonb,
+    quantidade_lotes              INT         NOT NULL,
+    modelo                        VARCHAR(100),
+    hashes_prompts_json           JSONB,
+    criado_em                     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    publicado_em                  TIMESTAMPTZ,
+    CONSTRAINT ck_analyser_panorama_uma_entidade
+        CHECK (num_nonnulls(nr_titulo_eleitoral_candidato, nr_partido) = 1)
+);
+
+CREATE UNIQUE INDEX uk_analyser_panorama_versao ON analyser_panorama (
+    entity_type,
+    COALESCE(nr_titulo_eleitoral_candidato, ''),
+    COALESCE(nr_partido, -1),
+    janela_mes,
+    eixo,
+    versao
+);</pre>
+
+<div class="nota">
+  <span class="rot">Sobre o índice único com valores nulos</span>
+  <p>No comportamento padrão do PostgreSQL, dois <code>NULL</code> são considerados distintos numa
+  restrição <code>UNIQUE</code>. Como um dos dois campos de ator é sempre nulo, um <code>UNIQUE</code>
+  comum <strong>não impediria duplicatas</strong> — é uma armadilha que já foi observada em
+  <code>tabela_classificacao</code>.</p>
+  <p>A DDL acima resolve com <code>COALESCE</code> dentro de um índice de expressão, o que funciona em
+  qualquer versão. Em PostgreSQL 15 ou superior, a alternativa mais direta é declarar
+  <code>UNIQUE NULLS NOT DISTINCT</code>. Qual das duas usar é decisão do responsável pelo banco.</p>
+</div>
+
+<div class="nota">
+  <span class="rot">Chaves estrangeiras para tabelas existentes</span>
+  <p>A DDL proposta <strong>não</strong> cria chave estrangeira de <code>analyser_item.id_midia</code>
+  para <code>tabela_midia</code>, nem de <code>article_id</code> para qualquer tabela do Classifier. A
+  intenção é manter as tabelas do Analyser não invasivas: uma FK faria uma remoção do lado do Classifier
+  falhar por causa de linhas do Analyser.</p>
+  <p>Se for preferível ter a integridade referencial garantida pelo banco, a FK para
+  <code>tabela_midia</code> pode ser acrescentada sem prejuízo funcional.</p>
+</div>
+
+</body>
+</html>

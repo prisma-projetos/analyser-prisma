@@ -2,7 +2,7 @@
 
 Documento de referência sobre arquitetura, etapas do pipeline, fluxo de informação e dicionário dos campos de saída.
 
-**Última atualização:** 2026-08-31
+**Última atualização:** 2026-09-01
 
 ---
 
@@ -14,7 +14,7 @@ O pipeline completo do produto é:
 
 Scraper → Messageria → **Classifier** → Messageria → **ANALYSER** → System DB → API → Frontend
 
-Este repositório é **somente o Analyser**. Ele recebe notícias que **já chegam classificadas** e produz o resumo que o eleitor lê. Não há banco, fila, HTTP nem interface: os arquivos JSON em `saida/` fazem o papel do banco, e isso é proposital.
+Este repositório é **somente o Analyser**. Ele recebe notícias que **já chegam classificadas** e produz o resumo que o eleitor lê. O núcleo analítico continua sem banco, HTTP ou interface; os arquivos JSON em `saida/` fazem o papel da persistência do protótipo. Há também um consumidor RabbitMQ opcional que preserva eventos recebidos em inbox JSON local, sem escrever no banco compartilhado. Consulte [Integração RabbitMQ do Analyser](Integracao_RabbitMQ_Analyser.md).
 
 ### A ideia central
 
@@ -141,9 +141,9 @@ Dois detalhes importantes:
 
 Dentro de cada grupo, os resumos são ordenados por `item_id`, para que a saída seja determinística.
 
-Não existe um número fixo de notícias por grupo. O agrupamento reúne todos os resumos conhecidos do mesmo ator, mês e classificação. O parâmetro `--lote` é uma divisão posterior para as chamadas de consolidação do modelo e vale 5 por padrão; portanto, um grupo com 8 notícias vira dois lotes (5 + 3). Na rodada 1, agosto tem três grupos: 6 negativos, 2 positivos e 2 neutros. Depois da rodada 2, agosto passa a ter 8 negativos, 4 positivos e 4 neutros; julho possui 1 negativo.
+Não existe um número fixo de notícias por grupo. O agrupamento reúne todos os resumos conhecidos do mesmo ator, mês e classificação. O parâmetro `--lote` é uma divisão posterior para as chamadas de consolidação do modelo e vale 100 por padrão; portanto, um grupo com 8 notícias vira um único lote de 8. Na rodada 1, agosto tem três grupos: 6 negativos, 2 positivos e 2 neutros. Depois da rodada 2, agosto passa a ter 8 negativos, 4 positivos e 4 neutros; julho possui 1 negativo.
 
-A quantidade de lotes é determinada por `ceil(quantidade_de_resumos / tamanho_do_lote)`, e o último lote recebe o restante. Por isso, um grupo com 6 notícias produz lotes de 5 e 1, enquanto um grupo com 4 produz um único lote de 4. No caso de julho na rodada 2, há apenas uma notícia naquele grupo, então o único lote contém 1 resumo.
+A quantidade de lotes é determinada por `ceil(quantidade_de_resumos / tamanho_do_lote)`, e o último lote recebe o restante. Com o padrão atual, um grupo com 106 notícias produz lotes de 100 e 6, enquanto um grupo com 4 produz um único lote de 4. No caso de julho na rodada 2, há apenas uma notícia naquele grupo, então o único lote contém 1 resumo.
 
 ---
 
@@ -151,7 +151,7 @@ A quantidade de lotes é determinada por `ceil(quantidade_de_resumos / tamanho_d
 
 **Onde:** `_etapa_4_e_5`. **Chama o modelo:** SIM, em dois níveis.
 
-**Nível 1 — por lote.** Os resumos do eixo são fatiados em lotes de tamanho `--lote` (padrão 5). Cada lote vira uma chamada ao modelo, que produz uma `ConsolidacaoParcial` com `temas`, `pontos` e `fontes`.
+**Nível 1 — por lote.** Os resumos do eixo são fatiados em lotes de tamanho `--lote` (padrão 100). Cada lote vira uma chamada ao modelo, que produz uma `ConsolidacaoParcial` com `temas`, `pontos` e `fontes`.
 
 **Nível 2 — final.** Todas as parciais do eixo vão numa única chamada, que produz o `Panorama` daquele eixo naquela janela.
 
@@ -163,7 +163,7 @@ A quantidade de lotes é determinada por `ceil(quantidade_de_resumos / tamanho_d
 | `ConsolidacaoParcial` | um lote de até `--lote` resumos individuais | uma síntese parcial do lote | mesmo ator, mesma janela e mesmo eixo |
 | `Panorama` | todas as consolidações parciais daquele grupo lógico | a consolidação final exibida ao usuário | mesmo ator, mesma janela e mesmo eixo |
 
-Portanto, a sequência conceitual é **notícia → resumo individual → parcial do lote → panorama final**. A ressalva é que **grupo** e **lote** não são sinônimos: o grupo contém todos os resumos com a mesma identidade `(ator_id, janela, eixo)`, enquanto o lote é apenas uma fatia desse grupo usada para limitar cada chamada ao modelo. Por exemplo, um grupo com 7 notícias e `--lote 5` produz 7 resumos individuais, dois lotes (5 + 2), duas parciais e um panorama final. O nível final nunca mistura atores, meses ou eixos diferentes.
+Portanto, a sequência conceitual é **notícia → resumo individual → parcial do lote → panorama final**. A ressalva é que **grupo** e **lote** não são sinônimos: o grupo contém todos os resumos com a mesma identidade `(ator_id, janela, eixo)`, enquanto o lote é apenas uma fatia desse grupo usada para limitar cada chamada ao modelo. Por exemplo, um grupo com 107 notícias e `--lote 100` produz 107 resumos individuais, dois lotes (100 + 7), duas parciais e um panorama final. O nível final nunca mistura atores, meses ou eixos diferentes.
 
 #### Exemplo incremental: 400 notícias anteriores e 500 novas
 
@@ -171,12 +171,12 @@ As 400 notícias anteriores não são resumidas novamente: seus `ResumoItem` sã
 
 Entretanto, dizer que “os 900 resumos entram todos juntos” só é correto se os 900 tiverem o mesmo ator, a mesma janela e o mesmo eixo. O exemplo hipotético abaixo supõe um único ator e um único mês, mas três classificações vigentes:
 
-| Grupo `(ator_id, janela, eixo)` | Resumos anteriores | Resumos novos | Total do grupo | Lotes de até 5 | Parciais | Panoramas finais |
+| Grupo `(ator_id, janela, eixo)` | Resumos anteriores | Resumos novos | Total do grupo | Lotes de até 100 | Parciais | Panoramas finais |
 |---|---:|---:|---:|---:|---:|---:|
-| `(ator_001, 2026-08, negativo)` | 180 | 220 | 400 | 80 | 80 | 1 |
-| `(ator_001, 2026-08, positivo)` | 140 | 170 | 310 | 62 | 62 | 1 |
-| `(ator_001, 2026-08, neutro)` | 80 | 110 | 190 | 38 | 38 | 1 |
-| **Total** | **400** | **500** | **900** | **180** | **180** | **3** |
+| `(ator_001, 2026-08, negativo)` | 180 | 220 | 400 | 4 | 4 | 1 |
+| `(ator_001, 2026-08, positivo)` | 140 | 170 | 310 | 4 | 4 | 1 |
+| `(ator_001, 2026-08, neutro)` | 80 | 110 | 190 | 2 | 2 | 1 |
+| **Total** | **400** | **500** | **900** | **10** | **10** | **3** |
 
 O agrupamento é feito em Python antes das chamadas de consolidação. Cada `ConsolidacaoParcial` recebe somente um lote já pertencente a uma única chave `(ator_id, janela, eixo)`, e a `consolidacao_final` recebe somente as parciais dessa mesma chave. As parciais são intermediárias da execução e são geradas novamente no recálculo; o Analyser não reutiliza uma parcial ou um panorama anterior como substituto dos resumos individuais.
 
@@ -291,7 +291,7 @@ Como ele funciona, resumidamente:
 
 - **Resumo de item:** pega a primeira frase da notícia e a frase que traz a manifestação de quem foi citado (procurada por verbos como "afirmou", "informou", "defendeu", "reconheceu"). Os temas saem por frequência de palavras com 5+ letras, descontadas listas de palavras vazias e numerais.
 - **Consolidação de lote:** agrega os temas dos resumos do lote, contando quais ids sustentam cada um.
-- **Consolidação final:** junta as parciais, corta os temas em 6 (formato detalhado) ou 4 (formato compacto), e monta os campos do formato pedido.
+- **Consolidação final:** junta as parciais, corta os temas em 6 (negativo e positivo) ou 4 (neutro), e emenda os pontos das parciais num parágrafo único, sem ids na prosa, aberto por uma frase que nomeia o recorte. O fake é extrativo: ele não distingue crítica de elogio e não tenta — copia o rótulo que já veio do classificador para a abertura, e quem faz o recorte de verdade é o fragmento lido pelo modelo real.
 
 Ele também expõe contadores de chamada por tarefa, que são o que os testes usam para provar que a rodada 2 resumiu somente os sete itens inéditos e recuperou `not_004` do cache.
 
@@ -342,7 +342,7 @@ Sua intuição estava certa sobre a auditoria: ela é registro puro. Mas vale a 
 
 Cada entrada de `panoramas.json` tem duas partes. O objeto `panorama` aninhado é **o conteúdo**; tudo em volta dele é metadado técnico.
 
-**Vai para o usuário** (dentro de `panorama`): `total_itens`, `temas`, `fontes`, `texto`, `fatos_mais_citados`, `respostas_registradas`.
+**Vai para o usuário** (dentro de `panorama`): `total_itens`, `temas`, `fontes`, `texto`.
 
 **Metadado técnico** (fora de `panorama`): `versao`, `formato`, `avisos`, `lotes`, `modelo`, `hash_prompt_lote`, `hash_prompt_final`, `hash_prompt_formato`, `rodada`, `criado_em`.
 
@@ -370,13 +370,31 @@ Tomando como exemplo `saida/auditoria_20260831T200014_719.json`, que é o regist
 
 **`timestamp`** — Quando a execução rodou, em ISO 8601. Exemplo: `2026-08-31T20:00:14+00:00`.
 
-**`rodada`** — Nome do arquivo de entrada processado. Exemplo: `rodada_2.json`. Aparece também dentro de cada registro de panorama, permitindo saber qual execução produziu qual versão.
+**`execucao_id`** — Identificador imutável daquela execução, com data, hora e
+milissegundos em UTC. É também o sufixo de `auditoria_<execucao_id>.json`; por exemplo,
+`20260901T030503_871`.
+
+**`numero_rodada`** — Número sequencial da execução dentro do mesmo diretório de saída:
+1, 2, 3 e assim por diante. Ele responde “qual rodada foi esta?” sem confundir essa
+identidade com o nome do arquivo de entrada. O contador é local aos artefatos JSON e não
+é um sequenciador global seguro para várias instâncias concorrentes.
+
+**`arquivo_entrada`** — Nome do arquivo processado. Exemplo: `rodada_2.json`. Reexecutar
+o mesmo arquivo gera outro `execucao_id` e outro `numero_rodada`, mas mantém o mesmo
+`arquivo_entrada`.
+
+**`rodada`** — Alias legado de `arquivo_entrada`, preservado temporariamente para não
+quebrar consumidores existentes. Nos registros de panorama, o campo ainda informa qual
+arquivo originou aquela versão.
 
 **`ator_id`** — Identificador do alvo daquela rodada. Exemplo: `ator_001`.
 
 **`modelo`** — Qual implementação de modelo rodou. `fake` no padrão; com `--modelo api`, o valor de `MODEL` do `.env` — isto é, o nome real do modelo do provedor. É o que permite saber, meses depois, com que modelo um texto foi gerado.
 
-**`lote`** — Tamanho do lote usado no primeiro nível do reduce. Exemplo: `5`. Afeta diretamente quantas chamadas de `consolidacao_lote` acontecem.
+**`capacidade_maxima_lote`** — Limite configurado para uma chamada do primeiro nível do
+reduce. Um valor 100 significa “até 100 notícias”, e não “este lote contém 100 notícias”.
+
+**`lote`** — Alias legado de `capacidade_maxima_lote`, preservado por compatibilidade.
 
 **`prompts`** — Hash SHA-256 de cada arquivo de prompt vigente na execução. Todos os cinco são pré-carregados de propósito, mesmo os que não foram exercitados, porque o que interessa auditar é o **conjunto de prompts vigente**. Se um prompt for editado, o hash muda, e fica registrado que aquela execução usou um texto diferente. É o que torna uma execução antiga reproduzível.
 
@@ -394,6 +412,12 @@ Não existe campo `itens_reclassificados`: o contrato não admite reclassificaç
 
 **`janelas_recalculadas`** — Os períodos que ficaram sujos e foram reprocessados do zero. Na rodada 2: `2026-07` e `2026-08`. Julho entrou porque `not_017` é uma notícia de julho descoberta agora; agosto entrou por conter seis itens inéditos.
 
+**`lotes_processados`** — Um registro por consolidação parcial concluída, contendo
+`janela`, `eixo`, `numero_lote` e `quantidade_noticias`. Assim, um grupo com quatro
+notícias e capacidade 100 aparece como `Lote 1: 4 notícias`; um grupo com 106 aparece
+como `Lote 1: 100 notícias` e `Lote 2: 6 notícias`. O número do lote reinicia para cada
+combinação `(janela, eixo)`.
+
 **`panoramas_gravados`** — Um registro por panorama produzido, com `janela`, `eixo`, `versao` e `lotes`. Na rodada 2 foram quatro:
 
 | janela | eixo | versão | lotes |
@@ -403,7 +427,7 @@ Não existe campo `itens_reclassificados`: o contrato não admite reclassificaç
 | 2026-08 | positivo | 2 | 1 |
 | 2026-08 | neutro | 2 | 1 |
 
-Lê-se assim: julho negativo é a **primeira** versão (a janela nunca existiu antes); as três de agosto são **segundas** versões, porque a rodada 1 já tinha produzido a versão 1 de cada. E agosto negativo precisou de **2 lotes** porque tinha 8 itens, acima do lote de 5.
+Lê-se assim: julho negativo é a **primeira** versão (a janela nunca existiu antes); as três de agosto são **segundas** versões, porque a rodada 1 já tinha produzido a versão 1 de cada. Essa execução histórica usou explicitamente `--lote 5`; por isso agosto negativo precisou de **2 lotes** para 8 itens. Com o padrão atual de 100, os mesmos 8 itens formariam um único lote.
 
 Repare no que **não** está na lista: não há `2026-07` positivo nem neutro. Julho só tinha uma notícia, negativa — eixos vazios não geram panorama.
 
@@ -451,31 +475,33 @@ O schema `Panorama` é **único para os três eixos**, com os campos não usados
 
 **`total_itens`** — Quantas notícias compõem este panorama. Conferido na etapa 6.
 
-**`temas`** — Lista de assuntos recorrentes. Cada um traz `tema` (a palavra), `ocorrencias` (quantas notícias o sustentam) e `fontes` (os ids dessas notícias). Limitado a 6 no formato detalhado e 4 no compacto. É o que permite ao leitor ver do que a cobertura tratou, com o caminho de volta para as matérias.
+**`temas`** — Lista de assuntos recorrentes. Cada um traz `tema` (a palavra), `ocorrencias` (quantas notícias o sustentam) e `fontes` (os ids dessas notícias). A faixa acompanha o volume de matérias (ver `faixa_de_temas`). É o que permite ao leitor ver do que a cobertura tratou, com o caminho de volta para as matérias.
 
 **`fontes`** — Todos os ids que compõem o panorama. É a lista completa de rastreabilidade.
 
-**`texto`** — Preenchido **apenas no formato compacto** (eixo neutro); fica `null` no detalhado. É a narrativa de 2–3 frases. Exemplo real: *"A cobertura do período reúne 4 matérias sobre o alvo (not_009, not_010, not_013, not_015). Os assuntos mais frequentes são ajuste, audiência. As matérias descrevem os fatos sem que os veículos registrem contestação."*
+**`texto`** — O conteúdo do panorama, preenchido nos **três** eixos: um parágrafo único de 3 a 6 frases, **sem ids na prosa**. A primeira frase nomeia o recorte em palavras — "As críticas registradas pela cobertura do mês concentram-se em..." — para que quem lê saiba de cara diante de que está.
 
-**`fatos_mais_citados`** — Preenchido **apenas no formato detalhado**; fica `[]` no compacto. Lista de até 5 fatos, cada um com `descricao` e as `fontes` que o sustentam. Nenhuma afirmação existe sem id que a ancore.
+A rastreabilidade mora em `temas[].fontes` e em `fontes`, não no parágrafo: o texto é lido por um cidadão e corre limpo, e é pelos temas que se chega de volta às matérias. A contrapartida, dita sem rodeio: **uma afirmação do parágrafo não tem mais como ser conferida contra uma matéria específica** — nem por um leitor, nem pela etapa 6. O que a etapa 6 faz é o inverso: se um id vazar para a prosa, ela registra o vazamento como aviso.
 
-**`respostas_registradas`** — Preenchido **apenas no formato detalhado**. Registra se a cobertura traz manifestação de quem foi citado: `citado`, `houve_resposta` (booleano) e `fontes`. Tipicamente aparecem duas entradas por panorama — uma com `houve_resposta: true` e outra com `false`, cada uma listando os ids correspondentes.
-
-Este campo é importante para a leitura crítica: ele mostra em quantas matérias o alvo teve espaço de resposta, sem que o Analyser precise julgar se a resposta foi boa.
+Até 1º de setembro de 2026 este campo era exclusivo do formato compacto e os eixos negativo e positivo entregavam `fatos_mais_citados`, uma lista de fatos soltos. Os mesmos fatos agora chegam consolidados aqui.
 
 ### Os formatos, e por que os arquivos têm esses nomes
 
-| Eixo | Formato | Estrutura |
+| Eixo | Fragmento | O que o parágrafo reúne |
 |---|---|---|
-| negativo | detalhado | campos estruturados: temas, fatos, respostas |
-| positivo | detalhado | campos estruturados: temas, fatos, respostas |
-| neutro | compacto | texto corrido de 2–3 frases |
+| negativo | `formatos/negativo.txt` | as críticas e cobranças que a cobertura registra |
+| positivo | `formatos/positivo.txt` | os elogios e entregas que a cobertura registra |
+| neutro | `formatos/neutro.txt` | os fatos que a cobertura registra sem tomar partido |
 
-Repare onde cai a divisão: **negativo + positivo de um lado, neutro do outro**. Não é negativo contra positivo. É "campos estruturados detalhados" contra "texto curto".
+A forma do objeto é a mesma nos três: temas, fontes, `total_itens` e um parágrafo. O que muda é o que o fragmento manda reunir nesse parágrafo.
 
-Os fragmentos de prompt são nomeados pelo **formato**, nunca pelo eixo: `prompts/formatos/detalhado.txt` é usado por negativo E positivo — o mesmo arquivo, literalmente.
+#### Por que isto mudou
 
-O motivo: se houvesse um `eixo_negativo.txt` e um `eixo_positivo.txt`, os dois nasceriam idênticos, mas nada impediria alguém, meses depois e de boa fé, de editar um para "seja mais incisivo" e o outro para "destaque as entregas". A partir daí, a diferença de tom que o cidadão lê viria do **prompt**, não das notícias: o Analyser passaria a **fabricar** a polaridade em vez de relatá-la. Compartilhar o mesmo arquivo torna essa assimetria impossível por descuido. É estrutura, não disciplina.
+Até 1º de setembro de 2026 os fragmentos eram nomeados pelo **formato**, nunca pelo eixo: `detalhado.txt` servia negativo E positivo, o mesmo arquivo byte a byte. O motivo era bom — se houvesse um `negativo.txt` e um `positivo.txt`, os dois nasceriam idênticos, mas nada impediria alguém, meses depois e de boa fé, de editar um para "seja mais incisivo" e o outro para "destaque as entregas". A diferença de tom que o cidadão lê passaria a vir do **prompt**, não das notícias.
+
+Por decisão de produto, o panorama passou a entregar um parágrafo consolidado no lugar dos fatos soltos, e esse parágrafo reúne explicitamente as críticas no eixo negativo e os elogios no positivo. Instruir esse recorte exige um fragmento por eixo. A simetria foi trocada por três arquivos distintos — de propósito, e registrado para que a troca não seja confundida com o descuido que a regra antiga evitava.
+
+O que a troca **não** afrouxou: o rótulo continua fora do prompt do resumo por item, a consolidação de lote continua com um prompt único e sem instrução de tom, e os três fragmentos mandam descrever o que a cobertura registra, proibindo adjetivo sobre o alvo.
 
 ---
 
@@ -557,8 +583,9 @@ prompts/            todos os prompts, carregados em runtime — nada hardcoded
   resumo_item.txt
   consolidacao_lote.txt
   consolidacao_final.txt
-  formatos/detalhado.txt    usado por negativo E positivo
-  formatos/compacto.txt     usado por neutro
+  formatos/negativo.txt
+  formatos/positivo.txt
+  formatos/neutro.txt
 
 dados/              rodada_1.json e rodada_2.json
 saida/              resumos_item, panoramas, rotulos, auditoria_*
@@ -605,7 +632,7 @@ testes/
             |
             v
   [4] Para cada eixo nao vazio:
-        nivel 1: MODELO: consolidacao_lote (um por lote de 5)
+        nivel 1: MODELO: consolidacao_lote (um por lote de até 100)
         nivel 2: MODELO: consolidacao_final (um por eixo)
             |
             v

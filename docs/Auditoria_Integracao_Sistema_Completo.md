@@ -2,6 +2,8 @@
 
 Data da auditoria: 31 de agosto de 2026
 
+Atualização operacional: 1º de setembro de 2026
+
 Projeto principal: Prisma Analyser
 
 Escopo relacionado: Scraper, Classifier, banco compartilhado, API Java e frontend Next.js
@@ -11,6 +13,11 @@ Natureza deste documento: diagnóstico técnico e proposta de integração, sem 
 ## Orientação para consulta pelo Claude Code
 
 Este é o documento canônico da auditoria de integração realizada em 31 de agosto de 2026.
+
+A execução complementar com dados reais, modelo local e lote padrão 100 está documentada
+em [Teste_Integracao_Banco_Real_2026_09.md](Teste_Integracao_Banco_Real_2026_09.md).
+Esse documento contém a evidência produzida depois desta auditoria e deve ser consultado
+junto com este arquivo.
 
 Antes de propor ou implementar uma integração relacionada ao Prisma Analyser, consulte este arquivo e confirme novamente o estado atual dos arquivos executáveis citados. O workspace possuía alterações locais preexistentes durante a auditoria, especialmente no Prisma Analyser; portanto, os fatos aqui registrados descrevem o estado inspecionado nessa data e podem ficar desatualizados após novas alterações.
 
@@ -52,7 +59,7 @@ No estado inspecionado, o Prisma Analyser:
 - espera uma lista de notícias completas;
 - espera um único rótulo por notícia;
 - salva estado e resultados em arquivos JSON locais;
-- não consome RabbitMQ;
+- possui um consumidor RabbitMQ opcional que valida e registra eventos em inbox JSON local;
 - não consulta PostgreSQL;
 - não expõe endpoints HTTP;
 - não entrega resultados à API Java;
@@ -347,6 +354,30 @@ paragraph_index é enviado na notificação, mas não foi encontrado como coluna
 
 Consequência: depois de receber a notificação, o Analyser não consegue localizar com precisão a linha correspondente no banco usando paragraph_index.
 
+##### Verificação no banco implantado em 1º de setembro de 2026
+
+Uma consulta somente leitura ao banco `prisma-dev`, schema `public`, confirmou que `tabela_classificacao` possui 14 colunas e não possui `paragraph_index` nem uma coluna equivalente com nomes contendo `paragraph`, `paragra`, `indice`, `index`, `ordem`, `position` ou `posicao`.
+
+A única coluna da tabela relacionada a parágrafo é `paragrafo_analisado` (`text`), que armazena o conteúdo do trecho. Ela não representa a posição do parágrafo no artigo. `id_classificacao` identifica a linha da classificação e também não equivale ao índice do parágrafo. O JSON `evidencia_match` continha apenas as chaves `alias`, `score` e `tipo`.
+
+Em contraste, as 100 mensagens mais recentes examinadas em `classifier_analyser_outbox.payload.classificacoes[]` ainda usavam exatamente a chave `paragraph_index`, junto com `entity_type`, `entity_id`, `classificacao_sentimento` e `score_confianca`. Portanto, não foi encontrada evidência de renomeação no banco implantado. Pode existir uma mudança planejada ou ainda não implantada, mas isso não está refletido no schema nem nos payloads consultados.
+
+#### Decisão faseada proposta: conectar o RabbitMQ antes da coluna
+
+Status: proposta arquitetural ainda não implementada. Nenhuma alteração de banco foi realizada.
+
+É possível implementar primeiro o consumidor e o adaptador do Analyser, porque a notificação atual do Classifier já transporta `paragraph_index`. Nessa fase, o consumidor pode validar e registrar o payload original e consultar todas as classificações do mesmo artigo, versão e ator para produzir o resumo no nível do artigo.
+
+Essa integração inicial não resolve a correlação exata entre cada elemento de `classificacoes` recebido e a linha que contém `paragrafo_analisado`. O RabbitMQ apenas transporta a mensagem; ele não cria colunas nem modifica o PostgreSQL. Enquanto `tabela_classificacao` não persistir `paragraph_index`, a ordem e a proveniência individual dos trechos permanecem provisórias ou ambíguas.
+
+A evolução posterior, sujeita a autorização explícita para modificar o banco, deve adicionar inicialmente uma coluna anulável, fazer o Classifier persistir `result.paragraph_index` e atualizar consultas, contratos, testes e documentação. Registros históricos só devem ser preenchidos quando a correspondência com o payload do outbox for inequívoca; casos ambíguos devem permanecer nulos.
+
+Portanto, a divisão segura é:
+
+1. agora: recepção, validação, persistência durável do evento e resumo agregado por artigo e ator;
+2. depois: migration autorizada e correlação determinística por `paragraph_index`;
+3. somente após essa segunda fase: declarar rastreabilidade exata por parágrafo.
+
 #### Constraint de unicidade com valores nulos
 
 A tabela de classificação usa uma restrição UNIQUE envolvendo os identificadores de político e partido. Em cada classificação, um desses identificadores tende a ser nulo.
@@ -458,7 +489,7 @@ O grupo lógico reúne todos os resumos que compartilham:
 - mês;
 - classificação definitiva.
 
-Depois, o grupo é dividido em lotes com no máximo LOTE_PADRAO itens. O limite cinco representa o tamanho máximo, não uma quantidade obrigatória.
+Depois, o grupo é dividido em lotes com no máximo `LOTE_PADRAO` itens. O valor atual é 100 e representa o tamanho máximo, não uma quantidade obrigatória. Esse aumento reduz o número de chamadas de consolidação, mas pode ampliar o prompt; por isso, grupos próximos de 100 itens precisam ser medidos contra o limite de contexto do modelo.
 
 ### 7.7 Persistência
 
@@ -1203,7 +1234,12 @@ Se API e frontend também nunca puderem ser alterados, o resultado não poderá 
 
 ## 18. Plano de implementação futuro
 
-Nenhum item desta seção está implementado apenas por constar neste documento.
+Nenhum item desta seção está implementado apenas por constar neste documento. Exceção
+registrada em 1º de setembro de 2026: a primeira camada da Fase 3 foi implementada em
+`analyser/rabbitmq.py`. Ela consome uma fila existente sem declarar topologia, valida o
+payload, preserva `paragraph_index` em inbox JSON local e confirma a mensagem somente após a
+escrita durável. Ela não consulta nem modifica PostgreSQL e não chama o modelo. Consulte
+[Integração RabbitMQ do Analyser](Integracao_RabbitMQ_Analyser.md).
 
 ### Fase 1: fechar contratos
 
@@ -1227,10 +1263,8 @@ Nenhum item desta seção está implementado apenas por constar neste documento.
 
 ### Fase 3: integração RabbitMQ
 
-- implementar consumer;
 - validar mensagens;
-- configurar ack manual;
-- configurar retentativas;
+- processar os eventos válidos já registrados no inbox;
 - configurar dead-letter queue;
 - implementar reconciliação;
 - adicionar métricas e logs.
