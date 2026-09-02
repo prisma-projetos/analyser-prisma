@@ -113,6 +113,21 @@ class Armazenamento:
     def ler_panoramas(self) -> list[RegistroPanorama]:
         """Todas as versões de todos os panoramas, em ordem de gravação."""
         cru: list[Any] = _ler_json(self.config.arquivo_panoramas, [])
+        legados = [
+            registro
+            for registro in cru
+            if isinstance(registro, dict)
+            and isinstance(registro.get("panorama"), dict)
+            and "respostas_registradas" in registro["panorama"]
+        ]
+        if legados:
+            raise SaidaLegadaIncompativel(
+                f"{self.config.arquivo_panoramas} usa o formato anterior, com o campo "
+                f"'respostas_registradas' ({len(legados)} registro(s)). O campo saiu do "
+                "contrato porque media as manifestações de qualquer citado, "
+                "não o contraditório do alvo. Regenere essa saída ou "
+                "aponte --saida para um diretório novo."
+            )
         return [RegistroPanorama.model_validate(v) for v in cru]
 
     def proxima_versao(self, *, ator_id: str, janela: str, eixo: Eixo) -> int:
@@ -158,6 +173,27 @@ class Armazenamento:
     # ----------------------------------------------------------------------------------
     # Auditoria
     # ----------------------------------------------------------------------------------
+
+    def proximo_numero_rodada(self) -> int:
+        """Próximo número sequencial de execução dentro deste diretório de saída.
+
+        Auditorias anteriores à introdução de ``numero_rodada`` contam pela posição
+        cronológica do arquivo. Isso permite continuar uma saída existente sem editar os
+        registros históricos.
+
+        O número é local ao diretório de saída; ele não pretende ser um contador global
+        entre várias instâncias concorrentes do Analyser.
+        """
+        maior_numero = 0
+        auditorias = sorted(self.config.saida.glob("auditoria_*.json"))
+        for posicao, caminho in enumerate(auditorias, start=1):
+            dados = _ler_json(caminho, {})
+            numero = dados.get("numero_rodada") if isinstance(dados, dict) else None
+            if isinstance(numero, int) and not isinstance(numero, bool) and numero >= 1:
+                maior_numero = max(maior_numero, numero)
+            else:
+                maior_numero = max(maior_numero, posicao)
+        return maior_numero + 1
 
     def gravar_auditoria(self, carimbo: str, dados: dict[str, Any]) -> Path:
         """Grava o registro de auditoria da execução e devolve o caminho."""

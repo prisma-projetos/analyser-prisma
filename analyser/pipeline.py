@@ -8,6 +8,7 @@ do Classifier é definitiva e faz parte do registro imutável da notícia.
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from typing import Any
@@ -34,6 +35,7 @@ class ResultadoExecucao:
     ator_id: str
     ator_nome: str
     rodada: str
+    numero_rodada: int = 0
     ids_entrada: list[str] = field(default_factory=list)
     ids_do_cache: list[str] = field(default_factory=list)
     ids_resumidos_agora: list[str] = field(default_factory=list)
@@ -48,6 +50,7 @@ class ResultadoExecucao:
     modelo: str = ""
     hashes_prompts: dict[str, str] = field(default_factory=dict)
     tokens: dict[str, int] = field(default_factory=dict)
+    lotes_processados: list[dict[str, Any]] = field(default_factory=list)
     carimbo: str = ""
     caminho_auditoria: str = ""
 
@@ -59,6 +62,28 @@ class ResultadoExecucao:
 
 class ConflitoClassificacao(ValueError):
     """Mesmo `item_id` recebido com rótulo diferente do registro imutável."""
+
+
+#: Um id vazado para dentro do parágrafo do panorama. Os três fragmentos de formato
+#: proíbem ids na prosa — a rastreabilidade mora em `temas[].fontes` e em `fontes`, e o
+#: texto corre limpo para quem lê. Esta expressão existe para detectar a desobediência e
+#: transformá-la em aviso de auditoria, em vez de deixá-la chegar à tela.
+#:
+#: O filtro exige o sublinhado porque todo id deste módulo o tem (`not_001`,
+#: `art_408__politico_122418060191`), e um parêntese de texto corrido não — é o que
+#: separa uma citação de "(Republicanos)" numa frase sobre um partido.
+_ID_ENTRE_PARENTESES = re.compile(r"\(([^)]*)\)")
+
+
+def _ids_no_texto(texto: str) -> set[str]:
+    """Ids citados entre parênteses ao longo do parágrafo do panorama."""
+    encontrados: set[str] = set()
+    for grupo in _ID_ENTRE_PARENTESES.findall(texto):
+        for pedaco in re.split(r"[,;]", grupo):
+            candidato = pedaco.strip()
+            if "_" in candidato and " " not in candidato:
+                encontrados.add(candidato)
+    return encontrados
 
 
 class Analyser:
@@ -84,6 +109,7 @@ class Analyser:
             ator_id=rodada.ator.id,
             ator_nome=rodada.ator.nome,
             rodada=nome_rodada,
+            numero_rodada=self.armazenamento.proximo_numero_rodada(),
             ids_entrada=[i.id for i in rodada.itens],
             modelo=self.modelo.nome,
             carimbo=carimbo_execucao(),
@@ -249,7 +275,7 @@ class Analyser:
 
         # Nível 1: uma consolidação parcial por lote.
         parciais: list[ConsolidacaoParcial] = []
-        for lote in lotes:
+        for numero_lote, lote in enumerate(lotes, start=1):
             carga = [
                 {"fonte_id": r.fonte_id, "resumo": r.resumo, "temas": r.temas, "veiculo": r.veiculo}
                 for r in lote
@@ -266,6 +292,14 @@ class Analyser:
             )
             self._somar_tokens(parcial.tokens)
             parciais.append(parcial.dados)
+            resultado.lotes_processados.append(
+                {
+                    "janela": janela,
+                    "eixo": eixo,
+                    "numero_lote": numero_lote,
+                    "quantidade_noticias": len(lote),
+                }
+            )
 
         # Nível 2: as parciais viram o panorama do eixo.
         carga_parciais = [p.model_dump(mode="json") for p in parciais]
@@ -369,10 +403,17 @@ class Analyser:
         citados: set[str] = set(panorama.fontes)
         for tema in panorama.temas:
             citados.update(tema.fontes)
-        for fato in panorama.fatos_mais_citados:
-            citados.update(fato.fontes)
-        for resposta in panorama.respostas_registradas:
-            citados.update(resposta.fontes)
+
+        # O parágrafo é lido por um cidadão e corre sem códigos: a rastreabilidade mora em
+        # `temas[].fontes` e em `fontes`. Um id que apareça na prosa não é rastreabilidade
+        # a mais — é o formato desobedecido, e o cidadão lendo "(art_408)" no meio do texto.
+        no_paragrafo = _ids_no_texto(panorama.texto)
+        if no_paragrafo:
+            avisos.append(
+                "o parágrafo cita ids entre parênteses "
+                f"({', '.join(sorted(no_paragrafo))}); o formato pede o texto sem ids, "
+                "com a rastreabilidade em temas e fontes"
+            )
 
         inexistentes = sorted(citados - validos)
         if inexistentes:
@@ -425,6 +466,12 @@ class Analyser:
         resultado.hashes_prompts = self.prompts.hashes
         dados: dict[str, Any] = {
             "timestamp": agora_iso(),
+            "execucao_id": resultado.carimbo,
+            "numero_rodada": resultado.numero_rodada,
+            "arquivo_entrada": resultado.rodada,
+            "capacidade_maxima_lote": self.config.lote,
+            "lotes_processados": resultado.lotes_processados,
+            # Aliases legados preservados para consumidores existentes.
             "rodada": resultado.rodada,
             "ator_id": resultado.ator_id,
             "modelo": resultado.modelo,

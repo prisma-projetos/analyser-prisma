@@ -10,8 +10,10 @@ DB → API → Frontend.
 Este repositório é **só o Analyser**. Ele recebe notícias que já chegam classificadas e
 produz o resumo que o eleitor lê.
 
-Sem banco, sem fila, sem HTTP, sem interface. Os arquivos JSON em `saida/` fazem o papel
-do banco — é proposital.
+O núcleo analítico continua sem banco, HTTP ou interface: os arquivos JSON em `saida/`
+fazem o papel da persistência do protótipo. A partir desta versão, há também um consumidor
+opcional de RabbitMQ que recebe e preserva os eventos do Classifier em um inbox JSON local;
+ele não escreve no banco compartilhado.
 
 ---
 
@@ -34,6 +36,53 @@ Testes:
 ```bash
 python -m pytest
 ```
+
+---
+
+## Receber notificações do Classifier pelo RabbitMQ
+
+O consumidor recebe o payload publicado pelo Classifier, valida o schema e grava cada evento
+em `saida/inbox_eventos.jsonl` antes de enviar o ACK ao RabbitMQ. Isso preserva
+`classificacoes[].paragraph_index`, mesmo ele ainda não sendo uma coluna de
+`tabela_classificacao`.
+
+1. Copie `.env.example` para `.env` se ainda não existir.
+2. Preencha as variáveis `RABBITMQ_*` com os valores fornecidos pela infraestrutura.
+3. Confirme somente a autenticação, sem consumir mensagens:
+
+```bash
+python -m analyser.consumidor_rabbitmq --verificar-conexao
+```
+
+4. Inicie o consumidor:
+
+```bash
+python -m analyser.consumidor_rabbitmq --saida saida
+```
+
+O contrato confirmado mantém `RABBITMQ_DECLARE_TOPOLOGY=false`: o Analyser não cria nem
+altera exchange, fila ou binding. Para interromper, use `Ctrl+C`.
+
+Esta primeira integração **não chama o modelo nem cria resumos automaticamente**. Ela é a
+camada de entrada confiável. A transformação de vários trechos classificados em uma notícia
+exige uma regra de negócio aprovada para agregar rótulos e uma leitura posterior dos trechos
+no banco. Detalhes, limites e testes estão em
+[Integração RabbitMQ do Analyser](docs/Integracao_RabbitMQ_Analyser.md).
+
+---
+
+## Demonstração auditável com dados reais
+
+A execução isolada de setembro de 2026 usa 12 itens montados a partir de trechos do banco,
+o modelo local `qwen3.5:9b` e lote 100. Consulte:
+
+- [documentação técnica do teste](docs/Teste_Integracao_Banco_Real_2026_09.md);
+- [relatório visual “Da notícia ao panorama”](relatorios/demo_banco_2026_08.html);
+- [metadados de rastreabilidade](dados/rodada_banco_demo_2026_08_metadados.json).
+
+O banco foi consultado em transações `READ ONLY` encerradas com `ROLLBACK`. O relatório
+é demonstrativo: mostra parte das entradas e dos resumos, mas inclui integralmente os três
+panoramas finais.
 
 ---
 
@@ -94,7 +143,7 @@ fosse uma pessoa.
 2. **Marcação de janelas sujas.** Uma janela entra na fila de recálculo quando recebe um
    item inédito.
 3. **Agrupamento.** Pela classificação definitiva gravada no resumo, em Python puro.
-4. **Consolidação em dois níveis (reduce).** Lotes de `--lote` (padrão 5) → parciais →
+4. **Consolidação em dois níveis (reduce).** Lotes de `--lote` (padrão 100) → parciais →
    panorama do eixo. A entrada são **sempre os resumos curtos**, nunca os textos completos
    e nunca um panorama anterior.
 5. **Versionamento.** Versão nova; as anteriores nunca são tocadas.
@@ -127,41 +176,55 @@ fosse uma pessoa.
 
 ## Formatos de saída, e por que os arquivos têm esses nomes
 
-Eixos diferentes pedem estruturas de saída diferentes, resolvidas por um mapa em
-configuração:
+Cada eixo tem o seu fragmento de formato, resolvido por um mapa em configuração:
 
 ```python
-FORMATO_POR_EIXO = {"negativo": "detalhado", "positivo": "detalhado", "neutro": "compacto"}
+FORMATO_POR_EIXO = {"negativo": "negativo", "positivo": "positivo", "neutro": "neutro"}
 ```
 
 O prompt final é montado como **base única + fragmento de formato**. A base
 ([consolidacao_final.txt](prompts/consolidacao_final.txt)) concentra todas as regras de
-fidelidade, rastreabilidade e estilo. O fragmento define **apenas a estrutura**: quais
-campos preencher, quantos temas, tamanho alvo.
-
-Os fragmentos são nomeados pelo **formato**, nunca pelo eixo:
+fidelidade, rastreabilidade e estilo, e é a mesma para os três. O fragmento define a
+estrutura da resposta e **o que o parágrafo consolidado deve reunir naquele recorte**:
 
 ```
-prompts/formatos/detalhado.txt   ← usado por negativo E positivo, o mesmo arquivo
-prompts/formatos/compacto.txt    ← usado por neutro
+prompts/formatos/negativo.txt   ← as críticas e cobranças que a cobertura registra
+prompts/formatos/positivo.txt   ← os elogios e entregas que a cobertura registra
+prompts/formatos/neutro.txt     ← os fatos que a cobertura registra sem tomar partido
 ```
 
-Repare onde cai a divisão: **negativo + positivo de um lado, neutro do outro**. Não é
-negativo contra positivo. É "campos estruturados detalhados" contra "texto curto de 2–3
-frases".
+Os três pedem a mesma coisa em forma: **um parágrafo de 3 a 6 frases, sem ids na prosa**,
+cuja primeira frase nomeia o recorte em palavras — *"As críticas registradas pela cobertura
+do mês concentram-se em…"*. O texto é lido por um cidadão e corre limpo; a rastreabilidade
+mora em `temas[].fontes` e em `fontes`. A contrapartida é real e está registrada na
+documentação: uma afirmação do parágrafo não tem mais como ser conferida contra uma matéria
+específica.
 
-Se houvesse um `eixo_negativo.txt` e um `eixo_positivo.txt`, os dois nasceriam idênticos —
-mas nada impediria alguém, meses depois e de boa fé, de editar um para "seja mais incisivo"
-e o outro para "destaque as entregas". A partir daí, a diferença de tom que o cidadão lê
-viria do **prompt**, não das notícias: o Analyser passaria a fabricar a polaridade em vez
-de relatá-la. Compartilhar literalmente o mesmo arquivo torna essa assimetria impossível
-por descuido. É estrutura, não disciplina — e o teste 2 cobra isso a cada execução.
+### Por que isto mudou
 
-> A árvore sugerida na especificação listava `formatos/eixo_positivo.txt`. A regra escrita
-> na mesma especificação diz "nomeados pelo formato, nunca pelo eixo". Valeu a regra.
+Até 1º de setembro de 2026 os fragmentos eram nomeados pelo **formato** —
+`detalhado.txt` servia negativo E positivo, o mesmo arquivo byte a byte — e o panorama
+detalhado entregava `fatos_mais_citados`, uma lista de fatos soltos. A ideia era que uma
+assimetria de tom entre negativo e positivo fosse impossível de introduzir por descuido:
+se ninguém pode editar só um dos dois, ninguém torna um mais incisivo que o outro.
 
-O **schema Pydantic é único** para os três eixos, com os campos não usados opcionais, para
-que o frontend tenha um contrato só. Nenhum nome de campo sinaliza polaridade.
+Por decisão de produto, o panorama passou a entregar **um parágrafo consolidado** no lugar
+dos fatos soltos, e esse parágrafo reúne explicitamente as críticas no eixo negativo e os
+elogios no positivo. Instruir esse recorte exige um fragmento por eixo. A simetria foi
+trocada por três arquivos distintos — de propósito, e registrado aqui para que a troca não
+seja confundida com o descuido que a regra antiga evitava.
+
+**O que a troca não afrouxou:**
+
+- o rótulo continua fora do prompt do resumo por item (`ROTULO_NO_PROMPT["map"] is False`);
+  o resumo de uma matéria não sabe em que eixo ela caiu;
+- a consolidação de lote, que alimenta os três eixos, continua com **um prompt único** e
+  sem instrução de tom — e o teste segue cobrando isso;
+- os três fragmentos mandam descrever o que a COBERTURA registra e proíbem adjetivo sobre
+  o alvo. O Analyser relata a polaridade das matérias; não a fabrica.
+
+O **schema Pydantic é único** para os três eixos: desde a troca, nenhum campo é exclusivo
+de um formato. Nenhum nome de campo sinaliza polaridade.
 
 ---
 
@@ -185,9 +248,10 @@ testes/
 **`ModeloFake` é o padrão.** É determinístico, extrativo e expõe contadores de chamada por
 tarefa, usados nos testes. Tudo o que ele escreve sai do texto que recebeu.
 
-**Auditoria** por execução em `saida/auditoria_<timestamp>.json`: modelo, hash de cada
-prompt, ids de entrada, ids resumidos agora, ids vindos do cache, janelas recalculadas,
-chamadas por tarefa, tokens e erros.
+**Auditoria** por execução em `saida/auditoria_<execucao_id>.json`: identificação
+imutável da execução, número sequencial da rodada no diretório de saída, arquivo de
+entrada, capacidade máxima configurada, quantidade real de notícias em cada lote,
+modelo, hashes dos prompts, cache, chamadas por tarefa, tokens, avisos e erros.
 
 ---
 

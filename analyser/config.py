@@ -29,13 +29,23 @@ EIXOS: Final[tuple[Eixo, ...]] = ("negativo", "positivo", "neutro")
 #: enquanto o agrupamento informa em qual eixo ela foi classificada.
 ROTULO_NO_PROMPT: Final[dict[str, bool]] = {"map": False, "reduce": True}
 
-#: Mapa eixo -> formato de saída. Os arquivos de prompt são nomeados pelo FORMATO, nunca
-#: pelo eixo: `negativo` e `positivo` compartilham literalmente o mesmo arquivo, de modo
-#: que uma assimetria de tom entre os dois não seja possível nem por descuido.
+#: Mapa eixo -> fragmento de formato. Cada eixo tem o seu.
+#:
+#: Até 1º de setembro de 2026 os fragmentos eram nomeados pelo FORMATO (`detalhado` para
+#: negativo e positivo, `compacto` para neutro), justamente para que uma assimetria de
+#: tom entre negativo e positivo fosse impossível de introduzir por descuido. Por decisão
+#: de produto, o panorama passou a entregar um parágrafo consolidado em vez de fatos
+#: soltos, e esse parágrafo reúne explicitamente as críticas no eixo negativo e os
+#: elogios no positivo. Instruir esse recorte exige um fragmento por eixo, então a
+#: simetria foi trocada por três arquivos distintos, de propósito e não por descuido.
+#:
+#: O que a troca NÃO afrouxou: o rótulo continua fora do prompt do resumo por item
+#: (`ROTULO_NO_PROMPT["map"] is False`) e a consolidação de lote, que alimenta os três
+#: eixos, continua com um prompt único e sem instrução de tom.
 FORMATO_POR_EIXO: Final[dict[Eixo, str]] = {
-    "negativo": "detalhado",
-    "positivo": "detalhado",
-    "neutro": "compacto",
+    "negativo": "negativo",
+    "positivo": "positivo",
+    "neutro": "neutro",
 }
 
 #: Regra 8. Determinismo é requisito, não preferência.
@@ -68,9 +78,9 @@ MAX_TOKENS_POR_TAREFA: Final[dict[str, int]] = {
     "consolidacao_final": 13000,
 }
 
-#: Tamanho padrão do lote no primeiro nível do reduce. Pequeno de propósito, para que os
-#: dois níveis de consolidação sejam exercitados já com poucos itens.
-LOTE_PADRAO: Final[int] = 5
+#: Tamanho padrão do lote no primeiro nível do reduce. O valor é um teto: grupos menores
+#: usam apenas os resumos existentes. Lotes grandes exigem monitorar o limite de contexto.
+LOTE_PADRAO: Final[int] = 100
 
 
 def faixa_de_temas(materias: int) -> tuple[int, int]:

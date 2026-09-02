@@ -56,8 +56,9 @@ class Prompts:
         "resumo_item.txt",
         "consolidacao_lote.txt",
         "consolidacao_final.txt",
-        "formatos/detalhado.txt",
-        "formatos/compacto.txt",
+        "formatos/negativo.txt",
+        "formatos/positivo.txt",
+        "formatos/neutro.txt",
     )
 
     def precarregar(self) -> None:
@@ -119,9 +120,9 @@ class Prompts:
     def arquivo_formato(self, eixo: Eixo) -> str:
         """Caminho do fragmento de formato de um eixo.
 
-        Os fragmentos são nomeados pelo FORMATO, nunca pelo eixo: `negativo` e `positivo`
-        resolvem para o mesmo arquivo, o que torna uma assimetria de tom entre os dois
-        impossível de introduzir por descuido.
+        Cada eixo tem o seu fragmento, porque o parágrafo consolidado reúne coisas
+        diferentes em cada recorte. O porquê da assimetria — e o que ela não afrouxou —
+        está registrado em `FORMATO_POR_EIXO`.
         """
         return f"formatos/{FORMATO_POR_EIXO[eixo]}.txt"
 

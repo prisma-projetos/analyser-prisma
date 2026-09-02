@@ -150,27 +150,13 @@ def _render_panorama(registro: RegistroPanorama) -> Panel:
     corpo.append(f"{p.total_itens} matérias  ·  formato {registro.formato}", style="dim")
     corpo.append(f"  ·  {registro.lotes} lote(s) no primeiro nível\n\n", style="dim")
 
-    if p.texto:
-        corpo.append(p.texto + "\n\n")
+    corpo.append(p.texto + "\n\n")
 
     corpo.append("temas\n", style="bold")
     for tema in p.temas:
         corpo.append(f"  • {tema.tema} ")
         corpo.append(f"({tema.ocorrencias}) ", style="bold")
         corpo.append(f"{', '.join(tema.fontes)}\n", style="dim")
-
-    if p.fatos_mais_citados:
-        corpo.append("\nfatos mais citados\n", style="bold")
-        for fato in p.fatos_mais_citados:
-            corpo.append(f"  • {fato.descricao}\n")
-            corpo.append(f"    {', '.join(fato.fontes)}\n", style="dim")
-
-    if p.respostas_registradas:
-        corpo.append("\nresposta dos citados registrada\n", style="bold")
-        for resposta in p.respostas_registradas:
-            marca = "sim" if resposta.houve_resposta else "não"
-            corpo.append(f"  • {resposta.citado}: {marca} ")
-            corpo.append(f"{', '.join(resposta.fontes)}\n", style="dim")
 
     corpo.append("\nfontes  ", style="bold")
     corpo.append(", ".join(p.fontes), style="dim")

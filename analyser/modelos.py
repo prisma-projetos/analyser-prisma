@@ -248,41 +248,21 @@ class ModeloFake:
                 if fonte not in fontes:
                     fontes.append(fonte)
 
-        limite = 6 if ctx["formato"] == "detalhado" else 4
+        limite = 4 if ctx["formato"] == "neutro" else 6
         temas = [
             {"tema": tema, "ocorrencias": len(ids), "fontes": ids}
             for tema, ids in ordenados[:limite]
         ]
 
-        panorama: dict[str, Any] = {
+        return {
             "ator_id": ctx["ator_id"],
             "janela": ctx["janela"],
             "eixo": ctx["eixo"],
             "total_itens": len(fontes),
             "temas": temas,
             "fontes": fontes,
-            "texto": None,
-            "fatos_mais_citados": [],
-            "respostas_registradas": [],
+            "texto": _paragrafo(ctx["eixo"], parciais, temas),
         }
-
-        if ctx["formato"] == "detalhado":
-            pontos = [p for parcial in parciais for p in parcial["pontos"]]
-            panorama["fatos_mais_citados"] = [
-                {"descricao": _primeira_frase(ponto), "fontes": _ids_do_ponto(ponto)}
-                for ponto in pontos[:5]
-            ]
-            panorama["respostas_registradas"] = _respostas(parciais)
-        else:
-            quantidade = len(fontes)
-            principais = ", ".join(t["tema"] for t in temas[:2]) or "assuntos variados"
-            panorama["texto"] = (
-                f"A cobertura do período reúne {quantidade} "
-                f"{'matéria' if quantidade == 1 else 'matérias'} sobre o alvo "
-                f"({', '.join(fontes)}). Os assuntos mais frequentes são {principais}. "
-                "As matérias descrevem os fatos sem que os veículos registrem contestação."
-            )
-        return panorama
 
 
 def _primeira_frase(ponto: str) -> str:
@@ -297,31 +277,52 @@ def _ids_do_ponto(ponto: str) -> list[str]:
     return re.findall(r"\b(?:not_\d+)\b", ponto) or ["desconhecido"]
 
 
-def _respostas(parciais: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Detecta, de forma extrativa, se a cobertura registra manifestação de citados."""
-    com_resposta: list[str] = []
-    sem_resposta: list[str] = []
+#: Abertura que nomeia o recorte, espelhando o que cada fragmento de formato pede ao
+#: modelo de verdade. O fake não sabe distinguir crítica de elogio — ele copia o rótulo
+#: que já veio do classificador; a frase existe para a FORMA bater com a do modelo real.
+_ABERTURA_POR_EIXO = {
+    "negativo": "As críticas que a cobertura do período registra são estas.",
+    "positivo": "Os destaques que a cobertura do período registra são estes.",
+    "neutro": "O que a cobertura do período relata, sem tomar partido, é isto.",
+}
+
+
+def _paragrafo(
+    eixo: str,
+    parciais: list[dict[str, Any]],
+    temas: list[dict[str, Any]],
+) -> str:
+    """Junta os pontos das parciais em um parágrafo único, sem ids na prosa.
+
+    O fake é extrativo: quem faz o recorte de verdade é o fragmento de formato lido pelo
+    modelo real. Aqui o que importa é produzir, sem rede e sem chave, um `texto` com a
+    MESMA forma que o schema e a etapa 6 exigem — parágrafo não vazio, abrindo pelo
+    recorte e sem nenhum id entre parênteses.
+    """
+    abertura = _ABERTURA_POR_EIXO.get(eixo, _ABERTURA_POR_EIXO["neutro"])
+
+    frases: list[str] = []
     for parcial in parciais:
         for ponto in parcial["pontos"]:
-            base = normalizar(ponto)
-            ids = _ids_do_ponto(ponto)
-            alvo = com_resposta if ("procurad" in base or "afirmou" in base or
-                                    "respondeu" in base or "informou" in base or
-                                    "defende" in base or "contesta" in base) else sem_resposta
-            for identificador in ids:
-                if identificador not in alvo:
-                    alvo.append(identificador)
+            frase = _sem_ids(_primeira_frase(ponto)).rstrip(".").strip()
+            if frase:
+                frases.append(f"{frase}.")
+            if len(frases) == 5:
+                break
+        if len(frases) == 5:
+            break
 
-    registros: list[dict[str, Any]] = []
-    if com_resposta:
-        registros.append(
-            {"citado": "alvo da cobertura", "houve_resposta": True, "fontes": com_resposta}
-        )
-    if sem_resposta:
-        registros.append(
-            {"citado": "alvo da cobertura", "houve_resposta": False, "fontes": sem_resposta}
-        )
-    return registros
+    if not frases:
+        principais = ", ".join(t["tema"] for t in temas[:2]) or "assuntos variados"
+        frases = [f"Os assuntos mais frequentes são {principais}."]
+
+    return " ".join([abertura, *frases])
+
+
+def _sem_ids(frase: str) -> str:
+    """Remove parênteses que carreguem id, onde quer que estejam na frase."""
+    limpa = re.sub(r"\s*\([^)]*_[^)]*\)", "", frase)
+    return re.sub(r"\s{2,}", " ", limpa).strip()
 
 
 # --------------------------------------------------------------------------------------

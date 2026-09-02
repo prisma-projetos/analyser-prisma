@@ -5,7 +5,7 @@ Regra 7: nada que venha do modelo é usado antes de passar por aqui. Texto solto
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -15,6 +15,41 @@ from analyser.config import Eixo, TipoAtor
 # --------------------------------------------------------------------------------------
 # Entrada — o que o Classifier entrega ao Analyser
 # --------------------------------------------------------------------------------------
+
+
+class ClassificacaoNotificada(BaseModel):
+    """Uma classificação por trecho recebida no evento do Classifier.
+
+    `paragraph_index` pertence ao payload publicado. Ele é preservado pelo Analyser,
+    embora ainda não exista como coluna em `tabela_classificacao`.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    entity_type: Literal["politico", "partido"]
+    entity_id: str | int
+    paragraph_index: Annotated[int, Field(ge=0)]
+    classificacao_sentimento: Literal["positivo", "negativo", "neutro"]
+    score_confianca: Annotated[float, Field(ge=0, le=1)]
+
+
+class NotificacaoClassifier(BaseModel):
+    """Contrato do evento publicado pelo Classifier para o Analyser.
+
+    Este modelo não substitui `Rodada`: a mensagem é um aviso granular por artigo e
+    classificações de trecho, enquanto o núcleo analítico ainda recebe uma rodada por ator.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1]
+    article_id: int
+    job_id: int
+    pipeline_version: str
+    link_noticia: str
+    data_publicacao_noticia: datetime | None
+    notificado_em: datetime
+    classificacoes: list[ClassificacaoNotificada]
 
 
 class ItemEntrada(BaseModel):
@@ -137,31 +172,13 @@ class ConsolidacaoParcial(BaseModel):
 # --------------------------------------------------------------------------------------
 
 
-class FatoCitado(BaseModel):
-    """Fato mencionado pela cobertura, com os ids que o sustentam."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    descricao: str
-    fontes: Annotated[list[str], Field(min_length=1)]
-
-
-class RespostaRegistrada(BaseModel):
-    """Se a cobertura registra manifestação de quem foi citado."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    citado: str
-    houve_resposta: bool
-    fontes: Annotated[list[str], Field(min_length=1)]
-
-
 class Panorama(BaseModel):
     """Panorama de um eixo em uma janela.
 
-    Schema único para os três eixos — o frontend tem um contrato só. Os campos que um
-    formato não usa ficam vazios. Nenhum nome de campo sinaliza polaridade: todos
-    descrevem a cobertura e servem igualmente a qualquer eixo.
+    Schema único para os três eixos — o frontend tem um contrato só. Nenhum nome de campo
+    sinaliza polaridade: todos descrevem a cobertura e servem igualmente a qualquer eixo.
+    O que muda entre os eixos é o que o fragmento de formato manda reunir no parágrafo,
+    não a forma do objeto.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -170,17 +187,18 @@ class Panorama(BaseModel):
     janela: str
     eixo: Eixo
     total_itens: Annotated[int, Field(ge=0)]
-    # Obrigatório de propósito: os DOIS fragmentos de formato pedem temas — o detalhado
-    # de 3 a 6, o compacto de 2 a 4. Nenhum dispensa, ao contrário dos campos abaixo, que
-    # variam mesmo. Enquanto este campo teve default, a decodificação restrita o tratou
-    # como dispensável e o formato compacto passou a devolver panorama sem tema nenhum.
+    # Obrigatório de propósito: os TRÊS fragmentos de formato pedem temas, e nenhum
+    # dispensa. Enquanto este campo teve default, a decodificação restrita o tratou como
+    # dispensável e o formato compacto passou a devolver panorama sem tema nenhum. Os
+    # temas seguem no contrato mesmo que a tela não os exiba de primeira.
     temas: Annotated[list[TemaContado], Field(min_length=1)]
     fontes: Annotated[list[str], Field(min_length=1)]
-    # Preenchido pelo formato `compacto`.
-    texto: str | None = None
-    # Preenchidos pelo formato `detalhado`.
-    fatos_mais_citados: list[FatoCitado] = Field(default_factory=list)
-    respostas_registradas: list[RespostaRegistrada] = Field(default_factory=list)
+    # O conteúdo do panorama, nos três eixos: um parágrafo consolidado com os ids entre
+    # parênteses. Obrigatório pelo mesmo motivo de `temas` — um campo com default é
+    # tratado como dispensável pela decodificação restrita, e aqui o dispensável seria
+    # justamente o texto que o cidadão lê. Substituiu a lista `fatos_mais_citados`, que
+    # entregava os mesmos fatos soltos.
+    texto: Annotated[str, Field(min_length=1)]
 
 
 class RegistroPanorama(BaseModel):
