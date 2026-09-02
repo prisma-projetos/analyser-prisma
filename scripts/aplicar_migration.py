@@ -87,11 +87,14 @@ def main() -> int:
         con.commit()
         print(f"migration aplicada em '{args.schema}'")
 
+        # Filtra pelo prefixo: em `public` as tabelas do Classifier apareceriam junto e a
+        # saída ficaria ilegível justamente onde a conferência importa mais.
         criadas = [
             t
             for (t,) in con.execute(
                 """SELECT table_name FROM information_schema.tables
-                    WHERE table_schema = %s ORDER BY table_name""",
+                    WHERE table_schema = %s AND table_name LIKE 'analyser\\_%%'
+                    ORDER BY table_name""",
                 (args.schema,),
             ).fetchall()
         ]
