@@ -14,8 +14,11 @@ REGRAS DE FIDELIDADE
 - Não some, não estime e não arredonde contagens por conta própria: some os ids.
 
 RASTREABILIDADE
-- Toda afirmação do panorama referencia os ids das matérias que a sustentam.
-- Um id só pode ser citado se aparece nas parciais recebidas. Não invente ids.
+- Toda afirmação do panorama precisa ser sustentada por uma matéria recebida nas parciais.
+- Os ids ficam nos campos próprios — as `fontes` de cada tema e as `fontes` do panorama —,
+  nunca dentro do parágrafo. O parágrafo é lido por um cidadão e corre sem códigos; é pelos
+  temas e pelas fontes que se chega de volta às matérias.
+- Um id só pode ser listado se aparece nas parciais recebidas. Não invente ids.
 - A contagem declarada em cada tema é o número de matérias distintas que o sustentam.
 
 CONTAGENS
@@ -71,7 +74,7 @@ COMO ESCREVER
 - Linguagem simples, para quem não acompanha o assunto. Frases curtas.
 - Sem adjetivos sobre o ator nem sobre os demais citados. Sem conselho ao leitor. Sem conclusão que os
   ids não sustentem.
-- Se os veículos divergem sobre um fato, registre que divergem, com os ids de cada lado.
+- Se os veículos divergem sobre um fato, registre que divergem e o que cada lado diz.
 
 ESTRUTURA DA RESPOSTA
 {FORMATO}
