@@ -1,0 +1,107 @@
+{
+  "timestamp": "2026-09-02T03:06:39+00:00",
+  "execucao_id": "20260902T030116_054",
+  "numero_rodada": 1,
+  "arquivo_entrada": "rodada_banco_demo_2026_08.json",
+  "capacidade_maxima_lote": 100,
+  "lotes_processados": [
+    {
+      "janela": "2026-08",
+      "eixo": "negativo",
+      "numero_lote": 1,
+      "quantidade_noticias": 4
+    },
+    {
+      "janela": "2026-08",
+      "eixo": "positivo",
+      "numero_lote": 1,
+      "quantidade_noticias": 4
+    },
+    {
+      "janela": "2026-08",
+      "eixo": "neutro",
+      "numero_lote": 1,
+      "quantidade_noticias": 4
+    }
+  ],
+  "rodada": "rodada_banco_demo_2026_08.json",
+  "ator_id": "122418060191",
+  "modelo": "qwen3.5:9b",
+  "lote": 100,
+  "prompts": {
+    "consolidacao_final.txt": "5817275523c5cd28812cbb2f531b114779cae0f1cfcd8261e5a2ae3c5f1e71f0",
+    "consolidacao_lote.txt": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "formatos/negativo.txt": "9292e14358e7b266c5335faee44c7eb903f8816c5103cd8c52a77fd5ecc854ca",
+    "formatos/neutro.txt": "c1aafeab7d8bad291d9cd1aa4110aaf69c7ebd1b2c63bdcff714eb908e8da6e9",
+    "formatos/positivo.txt": "3b0183dc7d88a449536e49143ed2aee2f1c5e2ea79a11c57dfd63ead99b61adf",
+    "resumo_item.txt": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885"
+  },
+  "ids_entrada": [
+    "art_408__politico_122418060191",
+    "art_229__politico_122418060191",
+    "art_783__politico_122418060191",
+    "art_934__politico_122418060191",
+    "art_1700__politico_122418060191",
+    "art_8__politico_122418060191",
+    "art_1559__politico_122418060191",
+    "art_1703__politico_122418060191",
+    "art_1723__politico_122418060191",
+    "art_904__politico_122418060191",
+    "art_1709__politico_122418060191",
+    "art_515__politico_122418060191"
+  ],
+  "ids_resumidos_agora": [
+    "art_408__politico_122418060191",
+    "art_229__politico_122418060191",
+    "art_783__politico_122418060191",
+    "art_934__politico_122418060191",
+    "art_1700__politico_122418060191",
+    "art_8__politico_122418060191",
+    "art_1559__politico_122418060191",
+    "art_1703__politico_122418060191",
+    "art_1723__politico_122418060191",
+    "art_904__politico_122418060191",
+    "art_1709__politico_122418060191",
+    "art_515__politico_122418060191"
+  ],
+  "ids_do_cache": [],
+  "janelas_recalculadas": [
+    "2026-08"
+  ],
+  "panoramas_gravados": [
+    {
+      "janela": "2026-08",
+      "eixo": "negativo",
+      "versao": 1,
+      "lotes": 1
+    },
+    {
+      "janela": "2026-08",
+      "eixo": "positivo",
+      "versao": 1,
+      "lotes": 1
+    },
+    {
+      "janela": "2026-08",
+      "eixo": "neutro",
+      "versao": 1,
+      "lotes": 1
+    }
+  ],
+  "chamadas_por_tarefa": {
+    "resumo_item": 12,
+    "consolidacao_lote": 3,
+    "consolidacao_final": 3
+  },
+  "chamadas_total": 18,
+  "tokens": {
+    "prompt": 26921,
+    "resposta": 9082
+  },
+  "avisos_verificacao": [
+    "[2026-08/neutro] tema 'cenários eleitorais e pesquisas' declarou 5 ocorrências e lista 2 fontes distintas; gravado 2",
+    "[2026-08/neutro] tema 'acordos políticos e indicações' declarou 3 ocorrências e lista 2 fontes distintas; gravado 2",
+    "[2026-08/neutro] tema 'investigações e casos' declarou 2 ocorrências e lista 1 fontes distintas; gravado 1"
+  ],
+  "erros": []
+}

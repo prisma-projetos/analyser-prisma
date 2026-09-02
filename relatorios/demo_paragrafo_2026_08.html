@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Da notícia ao panorama · Prisma Analyser</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c0e13;
+      --panel: #151821;
+      --panel-2: #10131a;
+      --line: #2b3040;
+      --text: #f3f1f8;
+      --muted: #9eacca;
+      --purple: #8f7cff;
+      --green: #50cf91;
+      --red: #ff7d8c;
+      --yellow: #e7bb68;
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 82% 0%, rgba(143,124,255,.09), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--serif);
+      line-height: 1.55;
+    }
+    a { color: #aebfff; text-underline-offset: .2em; }
+    code { font-family: var(--mono); }
+    .page { width: min(1480px, calc(100% - 40px)); margin: 0 auto; padding: 58px 0 100px; }
+    .hero { border-bottom: 1px solid #d7d9e1; padding-bottom: 42px; }
+    .hero-top { display: flex; gap: 24px; justify-content: space-between; align-items: flex-start; }
+    h1, h2, h3, h4 { font-family: var(--sans); margin: 0; line-height: 1.06; letter-spacing: -.035em; }
+    h1 { font-size: clamp(3.5rem, 8vw, 8rem); max-width: 1100px; }
+    .lede { color: #aebfe0; font-size: clamp(1.2rem, 2vw, 1.85rem); max-width: 900px; margin: 24px 0 0; }
+    .read-only {
+      border: 1px solid rgba(80,207,145,.5); background: rgba(80,207,145,.08);
+      color: var(--green); padding: 8px 12px; font: 700 .78rem var(--mono);
+      text-transform: uppercase; letter-spacing: .08em; white-space: nowrap;
+    }
+    .metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; margin-top: 38px; background: var(--line); border: 1px solid var(--line); }
+    .metric { background: var(--panel-2); padding: 18px; min-height: 94px; }
+    .metric strong { display: block; color: var(--purple); font: 700 1.55rem var(--sans); }
+    .metric span { color: var(--muted); font: .75rem var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+    .stage { margin-top: 54px; border-top: 3px solid var(--purple); padding-top: 28px; }
+    .stage-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+    .stage-title { display: flex; align-items: baseline; gap: 24px; }
+    .eyebrow { color: var(--purple); font: 800 .76rem var(--mono); text-transform: uppercase; letter-spacing: .16em; }
+    .stage h2 { font-size: clamp(2rem, 4vw, 3.4rem); }
+    .stage-note { color: var(--muted); font: .86rem var(--mono); text-align: right; }
+    .cards { display: grid; gap: 8px; }
+    .card { border: 1px solid var(--line); background: var(--panel); padding: 24px 28px; }
+    .card-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; color: #b5c4e2; font: .86rem var(--mono); }
+    .card-kicker code { color: var(--purple); font-weight: 800; }
+    .card h3 { font-size: 1.25rem; margin-top: 12px; }
+    .card p { color: #b6c7e8; font-size: 1.08rem; margin: 13px 0; }
+    .card-footer { display: flex; flex-wrap: wrap; gap: 18px; color: var(--muted); font: .76rem var(--mono); }
+    .pill { padding: 3px 8px; border: 1px solid var(--line); font-size: .7rem; text-transform: uppercase; }
+    .pill.negativo { color: var(--red); border-color: rgba(255,125,140,.45); }
+    .pill.positivo { color: var(--green); border-color: rgba(80,207,145,.45); }
+    .pill.neutro { color: var(--yellow); border-color: rgba(231,187,104,.45); }
+    .summary-text { color: #f5f2fb !important; font-size: 1.18rem !important; }
+    .tags { list-style: none; padding: 0; margin: 16px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+    .tags li { background: #0e1118; padding: 7px 10px; color: #a9bde2; font: .76rem var(--mono); }
+    .batch-grid { display: grid; gap: 8px; }
+    .batch-card { background: var(--panel); border: 1px solid var(--line); padding: 26px; }
+    .batch-card h3 { margin-top: 8px; font-size: 1.5rem; }
+    .batch-capacity { color: #dae3f6; font: 700 .92rem var(--mono); margin: 9px 0 0; }
+    .notice { border-left: 3px solid var(--yellow); padding-left: 14px; color: #b7c3db; margin: 18px 0 0; }
+    .source-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+    .source { background: #0d1017; color: #9cafff; padding: 5px 7px; font-size: .72rem; }
+    .finals { display: grid; gap: 28px; }
+    .final-panel { border: 1px solid var(--line); background: var(--panel); overflow: hidden; }
+    .final-panel.negativo { border-top: 4px solid var(--red); }
+    .final-panel.positivo { border-top: 4px solid var(--green); }
+    .final-panel.neutro { border-top: 4px solid var(--yellow); }
+    .final-header { padding: 26px; display: flex; justify-content: space-between; gap: 20px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+    .final-header h3 { font-size: 2rem; margin-top: 5px; }
+    .final-meta { color: var(--muted); font: .78rem var(--mono); text-align: right; }
+    .compact-text { margin: 24px 26px 0; padding: 20px; background: rgba(231,187,104,.06); color: #e9e3d5; font-size: 1.16rem; border-left: 3px solid var(--yellow); }
+    .result-block { margin: 0 26px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+    .result-block h4, .warnings h4 { color: var(--purple); font: 800 .77rem var(--mono); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 15px; }
+    .theme-list, .fact-list, .response-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 5px; }
+    .theme-row { background: #10131a; padding: 12px 14px; display: flex; justify-content: space-between; gap: 18px; align-items: center; }
+    .theme-row strong { font-family: var(--mono); font-size: .92rem; }
+    .theme-row strong span { color: var(--purple); }
+    .theme-row .source { color: var(--muted); }
+    .panorama-text { margin: 0; padding: 18px 22px; background: #10131a; color: #e9eefb; font-size: 1.14rem; line-height: 1.72; border-left: 3px solid #2b3040; }
+    .final-panel.negativo .panorama-text { border-left-color: var(--red); }
+    .final-panel.positivo .panorama-text { border-left-color: var(--green); }
+    .final-panel.neutro .panorama-text { border-left-color: var(--yellow); }
+    .response-row { display: grid; grid-template-columns: 48px 1fr 2fr; gap: 12px; align-items: center; background: #10131a; padding: 10px 14px; }
+    .response-row strong { color: var(--purple); font-family: var(--mono); }
+    .empty { color: var(--muted); font-style: italic; }
+    .warnings { margin: 0; padding: 22px 26px; background: rgba(231,187,104,.055); }
+    .warnings ul { margin: 0; padding-left: 20px; color: #e7c98f; }
+    .audit-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 12px; }
+    .audit-card { border: 1px solid var(--line); background: var(--panel); padding: 24px; }
+    .audit-card h3 { font-size: 1.25rem; margin-bottom: 16px; }
+    .audit-card dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; margin: 0; }
+    .audit-card dt { color: var(--muted); }
+    .audit-card dd { margin: 0; font-family: var(--mono); color: #dae3f6; text-align: right; }
+    .audit-json { grid-column: 1 / -1; }
+    .audit-json pre { margin: 0; padding: 18px; overflow-x: auto; background: #0d1017; color: #dae3f6; }
+    .audit-json code { font-size: .92rem; }
+    .risk-list { margin: 0; padding-left: 20px; color: #b8c7e2; }
+    .risk-list li + li { margin-top: 10px; }
+    .critical { color: var(--red); }
+    footer { border-top: 1px solid var(--line); color: var(--muted); margin-top: 54px; padding-top: 24px; font: .76rem var(--mono); }
+    @media (max-width: 900px) {
+      .page { width: min(100% - 24px, 1480px); padding-top: 28px; }
+      .hero-top, .stage-head, .final-header { flex-direction: column; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .audit-grid { grid-template-columns: 1fr; }
+      .stage-title { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .stage-note, .final-meta { text-align: left; }
+      .theme-row { align-items: flex-start; flex-direction: column; }
+      .response-row { grid-template-columns: 42px 1fr; }
+      .response-row div { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="hero-top">
+        <div>
+          <span class="eyebrow">PRISMA ANALYSER · TESTE COM DADOS REAIS</span>
+          <h1>Da notícia ao panorama</h1>
+          <p class="lede">
+            Trechos classificados sobre LUIZ INÁCIO LULA DA SILVA atravessando
+            todo o pipeline local. Entradas e resumos aparecem por amostragem visual;
+            os três panoramas finais são exibidos integralmente.
+          </p>
+        </div>
+        <div class="read-only">banco somente leitura · rollback</div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><strong>12</strong><span>itens processados</span></div>
+        <div class="metric"><strong>43</strong><span>trechos classificados</span></div>
+        <div class="metric"><strong>3</strong><span>eixos finais</span></div>
+        <div class="metric"><strong>100</strong><span>capacidade máxima</span></div>
+        <div class="metric"><strong>26921</strong><span>tokens de prompt</span></div>
+        <div class="metric"><strong>9082</strong><span>tokens de resposta</span></div>
+      </div>
+    </header>
+
+    <section class="stage" id="entrada">
+      <div class="stage-head">
+        <div class="stage-title"><span class="eyebrow">ENTRADA</span><h2>O que chegou ao Analyser</h2></div>
+        <div class="stage-note">6 de 12 itens exibidos · todos os 12 foram processados</div>
+      </div>
+      <div class="cards">
+            <article class="card input-card">
+              <div class="card-kicker">
+                <code>art_408__politico_122418060191</code>
+                <span>O Globo</span>
+                <time>2026-08-29</time>
+                <span class="pill negativo">Negativo</span>
+              </div>
+              <h3>Artigo 408 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA</h3>
+              <p>[Trecho classificado 2] Neste sábado (29), o governador Tarcísio de Freitas (Republicanos) participou do lançamento das candidaturas à reeleição do deputado federal Coronel Telhada e do deputado estadual Capitão Telhadinha, ambos do PP. Na Vila Leopoldina, na Zona Oeste de São Paulo, Tarcísio acompanhou uma série de discursos voltados à segurança pública e, ao subir ao palco, repetiu temas que tem explorado na campanha à reeleição, como a Cracolândia e a diminuição de indicadores criminais no estado. Também criticou o governo Lula e mencionou empresas que recentemente entraram em recuperação judicial.</p>
+              <div class="card-footer">
+                <span>1 trecho(s)</span>
+                <span>neg 1 · pos 0 · neu 0</span>
+                <a href="https://oglobo.globo.com/politica/eleicoes-2026/noticia/2026/08/29/tarcisio-diz-que-brasileiro-consome-menos-porque-dinheiro-esta-indo-para-bet.ghtml" rel="noreferrer">matéria original ↗</a>
+              </div>
+            </article>
+            
+            <article class="card input-card">
+              <div class="card-kicker">
+                <code>art_229__politico_122418060191</code>
+                <span>UOL</span>
+                <time>2026-08-28</time>
+                <span class="pill negativo">Negativo</span>
+              </div>
+              <h3>Artigo 229 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA</h3>
+              <p>[Trecho classificado 1] Osmar Stabile, presidente do Corinthians, minimizou à ESPN a polêmica envolvendo o clipe da música &quot;Don&#x27;t Panic&quot;, de Memphis Depay, e ironizou que o &quot;vice-presidente&quot; citado na letra pode ser até Geraldo Alckmin, vice de Lula (PT), presidente do Brasil.</p>
+              <div class="card-footer">
+                <span>1 trecho(s)</span>
+                <span>neg 1 · pos 0 · neu 0</span>
+                <a href="https://www.uol.com.br/esporte/futebol/ultimas-noticias/2026/08/28/vice-pode-ser-o-alckmin-ironiza-presidente-do-corinthians-sobre-musica.ghtm" rel="noreferrer">matéria original ↗</a>
+              </div>
+            </article>
+            
+            <article class="card input-card">
+              <div class="card-kicker">
+                <code>art_1700__politico_122418060191</code>
+                <span>veículo não identificado</span>
+                <time>2026-08-31</time>
+                <span class="pill positivo">Positivo</span>
+              </div>
+              <h3>Artigo 1700 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA</h3>
+              <p>[Trecho classificado 3] A comissão mista da MP das blusinhas avançou após conversas entre o presidente Luiz Inácio Lula da Silva e o senador Alcolumbre.</p>
+              <div class="card-footer">
+                <span>1 trecho(s)</span>
+                <span>neg 0 · pos 1 · neu 0</span>
+                <a href="https://www.correiodopovo.com.br/not%C3%ADcias/pol%C3%ADtica/congresso-deve-decidir-sobre-taxa-das-blusinhas-nesta-segunda-1.1743672" rel="noreferrer">matéria original ↗</a>
+              </div>
+            </article>
+            
+            <article class="card input-card">
+              <div class="card-kicker">
+                <code>art_8__politico_122418060191</code>
+                <span>veículo não identificado</span>
+                <time>2026-08-31</time>
+                <span class="pill positivo">Positivo</span>
+              </div>
+              <h3>Artigo 8 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA</h3>
+              <p>[Trecho classificado 0] Pesquisa BTG/Nexus divulgada nesta segunda-feira (31/8), a primeira após as sabatinas no Jornal Nacional e o início do horário eleitoral, mostra que na simulação de segundo turno, o cenário entre os líderes se manteve estável. Luiz Inácio Lula da Silva (PT) aparece com 46% das intenções de voto e Flávio Bolsonaro (PL) com 45%, repetindo o placar da rodada anterior. Outro confronto que mostra empate técnico é entre Lula e Ronaldo Caiado (PSD), com 45% a 44%. [Trecho classificado 5] No 1º turno, Lula oscila para 40% e Flávio recua a 35%, mostra Nexus/BTG [Trecho classificado 6] O avanço do escritor impactou diretamente outros candidatos. Luiz Inácio Lula da Silva (PT) recuou de 41% para 39%, enquanto Flávio Bolsonaro (PL) caiu…</p>
+              <div class="card-footer">
+                <span>5 trecho(s)</span>
+                <span>neg 0 · pos 3 · neu 2</span>
+                <a href="https://www.correiobraziliense.com.br/politica/2026/08/7490489-btg-nexus-lula-esta-empatado-com-flavio-e-caiado-no-segundo-turno.html" rel="noreferrer">matéria original ↗</a>
+              </div>
+            </article>
+            
+            <article class="card input-card">
+              <div class="card-kicker">
+                <code>art_1723__politico_122418060191</code>
+                <span>veículo não identificado</span>
+                <time>2026-08-31</time>
+                <span class="pill neutro">Neutro</span>
+              </div>
+              <h3>Artigo 1723 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA</h3>
+              <p>[Trecho classificado 1] Lulinha vira bomba-relógio para Lula [Trecho classificado 2] Lulinha é alvo de três inquéritos da Polícia Federal que investigam suspeitas de tráfico de influência e possível favorecimento de empresas em contratos com o governo. O caso envolve também pessoas próximas ao presidente Lula e ganhou força durante o período eleitoral, tornando-se uma preocupação para a campanha à reeleição. [Trecho classificado 3] O &quot;Grande acordo&quot; entre Moraes, Lula, Motta e Alcolumbre [Trecho classificado 4] Editorial da Gazeta do Povo analisa a aproximação entre Lula, Alexandre de Moraes, Davi Alcolumbre e Hugo Motta, destacando encontros recentes entre as autoridades e o anúncio de apoio mútuo. Lula teria recebido o respaldo de Alcolumbre e Mot…</p>
+              <div class="card-footer">
+                <span>4 trecho(s)</span>
+                <span>neg 0 · pos 1 · neu 3</span>
+                <a href="https://www.gazetadopovo.com.br/sem-rodeios/dino-x-mendonca-tensao-no-caso-lulinha-e-derrota-de-moraes/" rel="noreferrer">matéria original ↗</a>
+              </div>
+            </article>
+            
+            <article class="card input-card">
+              <div class="card-kicker">
+                <code>art_904__politico_122418060191</code>
+                <span>veículo não identificado</span>
+                <time>2026-08-31</time>
+                <span class="pill neutro">Neutro</span>
+              </div>
+              <h3>Artigo 904 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA</h3>
+              <p>[Trecho classificado 0] O presidente Lula (PT) tem empate técnico em eventuais cenários de segundo turno contra o senador Flávio Bolsonaro (PL) e o ex-governador de Goiás Ronaldo Caiado (PSD), aponta a pesquisa Pesquisa Nexus/BTG divulgada nesta segunda-feira (31). [Trecho classificado 1] Em cenário contra Flávio, Lula aparece com 46%, enquanto o senador tem 45%. Do total de entrevistados, 8% dizem que votariam branco, nulo ou em nenhum dos nomes, enquanto 1% não sabem ou não responderam. [Trecho classificado 2] Na simulação entre Lula e Caiado, o petista aparece com 45%, enquanto o ex-governador de Goiás tem 44%. Neste cenário 10% dizem que votariam branco, nulo ou em nenhum dos nomes, enquanto 1% não sabem ou não responderam. [Trecho classificado…</p>
+              <div class="card-footer">
+                <span>4 trecho(s)</span>
+                <span>neg 0 · pos 0 · neu 4</span>
+                <a href="https://novonoticias.com.br/lula-flavio-bolsonaro-e-caiado-estao-empatados-tecnicamente-no-2o-turno-diz-nexus-btg/" rel="noreferrer">matéria original ↗</a>
+              </div>
+            </article>
+            </div>
+    </section>
+
+    <section class="stage" id="resumos">
+      <div class="stage-head">
+        <div class="stage-title"><span class="eyebrow">ETAPA 1 · MAP</span><h2>resumo_item</h2></div>
+        <div class="stage-note">6 de 12 resumos exibidos · modelo qwen3.5:9b</div>
+      </div>
+      <div class="cards">
+            <article class="card summary-card">
+              <div class="card-kicker">
+                <code>art_408__politico_122418060191</code>
+                <span class="pill negativo">Negativo</span>
+              </div>
+              <p class="summary-text">O governador Tarcísio de Freitas criticou o governo Lula ao afirmar que o brasileiro consome menos porque o dinheiro está indo para a bet, em discurso durante o lançamento de candidaturas do PP. A matéria registra também que o político mencionou empresas que entraram em recuperação judicial e repetiu temas sobre segurança pública explorados na campanha à reeleição.</p>
+              <ul class="tags"><li>governo Lula</li><li>consumo brasileiro</li><li>jogos de azar</li><li>recuperação judicial</li><li>segurança pública</li></ul>
+            </article>
+            
+            <article class="card summary-card">
+              <div class="card-kicker">
+                <code>art_229__politico_122418060191</code>
+                <span class="pill negativo">Negativo</span>
+              </div>
+              <p class="summary-text">Osmar Stabile, presidente do Corinthians, minimizou uma polêmica sobre o clipe da música &#x27;Don&#x27;t Panic&#x27; e ironizou que a referência ao vice-presidente na letra poderia ser Geraldo Alckmin. O ex-governador de São Paulo é citado como vice de Luiz Inácio Lula da Silva, atual presidente do Brasil.</p>
+              <ul class="tags"><li>polêmica musical</li><li>Geraldo Alckmin</li><li>Luiz Inácio Lula da Silva</li></ul>
+            </article>
+            
+            <article class="card summary-card">
+              <div class="card-kicker">
+                <code>art_1700__politico_122418060191</code>
+                <span class="pill positivo">Positivo</span>
+              </div>
+              <p class="summary-text">A comissão mista da Medida Provisória sobre as blusinhas avançou após conversas entre o presidente Luiz Inácio Lula da Silva e o senador Alcolumbre. A matéria indica que a decisão sobre a taxa das blusinhas deve ser tomada pelo Congresso nesta segunda-feira.</p>
+              <ul class="tags"><li>comissão mista</li><li>Medida Provisória</li><li>conversas presidenciais</li><li>taxa das blusinhas</li></ul>
+            </article>
+            
+            <article class="card summary-card">
+              <div class="card-kicker">
+                <code>art_8__politico_122418060191</code>
+                <span class="pill positivo">Positivo</span>
+              </div>
+              <p class="summary-text">Uma pesquisa divulgada pela BTG/Nexus indica que, na simulação de segundo turno, Luiz Inácio Lula da Silva aparece empatado com Flávio Bolsonaro e Ronaldo Caiado. A matéria também registra uma queda na aprovação do presidente Lula e destaca o crescimento eleitoral do escritor Augusto Cury como fator que impactou as intenções de voto dos demais candidatos.</p>
+              <ul class="tags"><li>pesquisa eleitoral</li><li>segundo turno</li><li>aprovação presidencial</li><li>crescimento de candidato</li><li>polarização</li></ul>
+            </article>
+            
+            <article class="card summary-card">
+              <div class="card-kicker">
+                <code>art_1723__politico_122418060191</code>
+                <span class="pill neutro">Neutro</span>
+              </div>
+              <p class="summary-text">O caso de Lulinha é alvo de três inquéritos da Polícia Federal que investigam suspeitas de tráfico de influência e possível favorecimento de empresas em contratos com o governo. A matéria também aborda a aproximação entre Lula, Alexandre de Moraes, Davi Alcolumbre e Hugo Motta, destacando encontros recentes e o anúncio de apoio mútuo entre as autoridades.</p>
+              <ul class="tags"><li>tráfico de influência</li><li>caso Lulinha</li><li>apoio político</li><li>Grande acordo</li></ul>
+            </article>
+            
+            <article class="card summary-card">
+              <div class="card-kicker">
+                <code>art_904__politico_122418060191</code>
+                <span class="pill neutro">Neutro</span>
+              </div>
+              <p class="summary-text">Uma pesquisa divulgada pela Nexus/BTG indica que o presidente Lula tem empate técnico em cenários de segundo turno contra Flávio Bolsonaro e Ronaldo Caiado, mas apresenta vantagem sobre Romeu Zema. Os dados mostram as intenções de voto específicas para cada simulação eleitoral, incluindo a parcela de eleitores que optariam por votos brancos, nulos ou abstenção.</p>
+              <ul class="tags"><li>empate técnico</li><li>segundo turno</li><li>intenção de voto</li><li>cenários eleitorais</li></ul>
+            </article>
+            </div>
+    </section>
+
+    <section class="stage" id="lotes">
+      <div class="stage-head">
+        <div class="stage-title"><span class="eyebrow">ETAPA 4 · NÍVEL 1</span><h2>consolidacao_lote</h2></div>
+        <div class="stage-note">3 lotes reais · capacidade máxima 100</div>
+      </div>
+      <div class="batch-grid">
+            <article class="batch-card">
+              <div>
+                <span class="eyebrow">2026-08 · eixo negativo</span>
+                <h3>Lote 1: 4 notícias</h3>
+                <p class="batch-capacity">Capacidade máxima configurada: 100</p>
+              </div>
+              <div class="source-row"><code class="source">art_229__politico_122418060191</code><code class="source">art_408__politico_122418060191</code><code class="source">art_783__politico_122418060191</code><code class="source">art_934__politico_122418060191</code></div>
+              <p class="notice">
+                A chamada <code>consolidacao_lote</code> foi executada. O objeto
+                <code>ConsolidacaoParcial</code> não é persistido pelo código atual e,
+                portanto, seu texto exato não é reconstruído nesta tela.
+              </p>
+            </article>
+            
+            <article class="batch-card">
+              <div>
+                <span class="eyebrow">2026-08 · eixo positivo</span>
+                <h3>Lote 1: 4 notícias</h3>
+                <p class="batch-capacity">Capacidade máxima configurada: 100</p>
+              </div>
+              <div class="source-row"><code class="source">art_1559__politico_122418060191</code><code class="source">art_1700__politico_122418060191</code><code class="source">art_1703__politico_122418060191</code><code class="source">art_8__politico_122418060191</code></div>
+              <p class="notice">
+                A chamada <code>consolidacao_lote</code> foi executada. O objeto
+                <code>ConsolidacaoParcial</code> não é persistido pelo código atual e,
+                portanto, seu texto exato não é reconstruído nesta tela.
+              </p>
+            </article>
+            
+            <article class="batch-card">
+              <div>
+                <span class="eyebrow">2026-08 · eixo neutro</span>
+                <h3>Lote 1: 4 notícias</h3>
+                <p class="batch-capacity">Capacidade máxima configurada: 100</p>
+              </div>
+              <div class="source-row"><code class="source">art_1709__politico_122418060191</code><code class="source">art_1723__politico_122418060191</code><code class="source">art_515__politico_122418060191</code><code class="source">art_904__politico_122418060191</code></div>
+              <p class="notice">
+                A chamada <code>consolidacao_lote</code> foi executada. O objeto
+                <code>ConsolidacaoParcial</code> não é persistido pelo código atual e,
+                portanto, seu texto exato não é reconstruído nesta tela.
+              </p>
+            </article>
+            </div>
+    </section>
+
+    <section class="stage" id="finais">
+      <div class="stage-head">
+        <div class="stage-title"><span class="eyebrow">SAÍDA FINAL</span><h2>consolidacao_final — o que o cidadão lê</h2></div>
+        <div class="stage-note">3 panoramas · sem truncamento nesta seção</div>
+      </div>
+      <div class="finals">
+    <article class="final-panel negativo">
+      <header class="final-header">
+        <div>
+          <span class="eyebrow">ETAPA 4 · NÍVEL 2</span>
+          <h3>Negativo</h3>
+        </div>
+        <div class="final-meta">
+          4 matérias · negativo
+          · versão 1 · 1 lote
+        </div>
+      </header>
+      <section class="result-block">
+        <h4>Panorama — parágrafo consolidado</h4>
+        <p class="panorama-text">As críticas registradas pela cobertura do mês concentram-se em questionamentos sobre a gestão econômica e as alianças políticas do governo federal. O noticiário registra cobranças de que o consumo brasileiro estaria caindo devido ao dinheiro indo para jogos de azar, além de apontar a presença de empresas em recuperação judicial como temas explorados na campanha à reeleição. A cobertura também reúne ataques diretos à chapa eleitoral de Lula, com acusações de que aliados do ex-presidente participam da candidatura de Ciro Gomes e que parte do eleitorado ainda o considera aliado. Outras matérias abordam polêmicas sobre clipes musicais que mencionam nomes políticos e discussões sobre a segurança pública no país.</p>
+      </section>
+      <section class="result-block">
+        <h4>Temas — todos os resultados finais</h4>
+        <ul class="theme-list">
+            <li class="theme-row">
+              <strong><span>3×</span> críticas ao governo Lula e economia</strong>
+              <div><code class="source">art_229__politico_122418060191</code><code class="source">art_408__politico_122418060191</code><code class="source">art_783__politico_122418060191</code></div>
+            </li>
+            
+            <li class="theme-row">
+              <strong><span>2×</span> ataques à campanha eleitoral de Lula</strong>
+              <div><code class="source">art_783__politico_122418060191</code><code class="source">art_934__politico_122418060191</code></div>
+            </li>
+            
+            <li class="theme-row">
+              <strong><span>2×</span> polêmica musical e alianças políticas</strong>
+              <div><code class="source">art_229__politico_122418060191</code><code class="source">art_783__politico_122418060191</code></div>
+            </li>
+            
+            <li class="theme-row">
+              <strong><span>1×</span> segurança pública e recuperação judicial</strong>
+              <div><code class="source">art_408__politico_122418060191</code></div>
+            </li>
+            </ul>
+      </section>
+      <section class="result-block">
+        <h4>Fontes do panorama — todas</h4>
+        <div class="source-row"><code class="source">art_229__politico_122418060191</code><code class="source">art_408__politico_122418060191</code><code class="source">art_783__politico_122418060191</code><code class="source">art_934__politico_122418060191</code></div>
+      </section>
+      <section class="warnings">
+        <h4>Avisos de verificação</h4>
+        <ul><li>Nenhum aviso de verificação.</li></ul>
+      </section>
+    </article>
+    
+    <article class="final-panel positivo">
+      <header class="final-header">
+        <div>
+          <span class="eyebrow">ETAPA 4 · NÍVEL 2</span>
+          <h3>Positivo</h3>
+        </div>
+        <div class="final-meta">
+          4 matérias · positivo
+          · versão 1 · 1 lote
+        </div>
+      </header>
+      <section class="result-block">
+        <h4>Panorama — parágrafo consolidado</h4>
+        <p class="panorama-text">Os elogios registrados pela cobertura do mês concentram-se na postura estratégica de Luiz Inácio Lula da Silva durante a campanha para sua reeleição e para a eleição do pai, Nabor Wanderley. As matérias destacam que o presidente busca evitar conflitos com candidatos apoiados pelo petista, explorando sinais indiretos de boa relação por meio de vídeos sobre outras pautas. Além disso, o noticiário aponta avanços legislativos importantes, como o progresso da comissão mista sobre a Medida Provisória das blusinhas após conversas entre Lula e Alcolumbre. A cobertura também registra iniciativas de controle social, com a coleta de assinaturas para criar uma CPMI destinada a investigar Fábio Luís Lula da Silva. Por fim, os veículos relatam dados de pesquisas que simulam cenários eleitorais e monitoram as intenções de voto no país.</p>
+      </section>
+      <section class="result-block">
+        <h4>Temas — todos os resultados finais</h4>
+        <ul class="theme-list">
+            <li class="theme-row">
+              <strong><span>2×</span> campanha de reeleição de Lula</strong>
+              <div><code class="source">art_1559__politico_122418060191</code><code class="source">art_8__politico_122418060191</code></div>
+            </li>
+            
+            <li class="theme-row">
+              <strong><span>1×</span> avanço da comissão mista</strong>
+              <div><code class="source">art_1700__politico_122418060191</code></div>
+            </li>
+            
+            <li class="theme-row">
+              <strong><span>1×</span> criação de CPMI</strong>
+              <div><code class="source">art_1703__politico_122418060191</code></div>
+            </li>
+            
+            <li class="theme-row">
+              <strong><span>1×</span> pesquisa eleitoral da BTG/Nexus</strong>
+              <div><code class="source">art_8__politico_122418060191</code></div>
+            </li>
+            </ul>
+      </section>
+      <section class="result-block">
+        <h4>Fontes do panorama — todas</h4>
+        <div class="source-row"><code class="source">art_1559__politico_122418060191</code><code class="source">art_1700__politico_122418060191</code><code class="source">art_1703__politico_122418060191</code><code class="source">art_8__politico_122418060191</code></div>
+      </section>
+      <section class="warnings">
+        <h4>Avisos de verificação</h4>
+        <ul><li>Nenhum aviso de verificação.</li></ul>
+      </section>
+    </article>
+    
+    <article class="final-panel neutro">
+      <header class="final-header">
+        <div>
+          <span class="eyebrow">ETAPA 4 · NÍVEL 2</span>
+          <h3>Neutro</h3>
+        </div>
+        <div class="final-meta">
+          4 matérias · neutro
+          · versão 1 · 1 lote
+        </div>
+      </header>
+      <section class="result-block">
+        <h4>Panorama — parágrafo consolidado</h4>
+        <p class="panorama-text">O registro factual da cobertura do mês concentra-se em dados eleitorais e movimentações políticas no âmbito do Judiciário. As matérias apresentam resultados de pesquisas que indicam o presidente Lula à frente no primeiro turno, com cenários de empate técnico ou vantagem dependendo do adversário no segundo turno, além de menções a votos brancos e abstenção. Paralelamente, o noticiário relata a formação de acordos para indicação de ministros na Suprema Corte após reaproximações entre autoridades e líderes do Senado. Também são abordadas investigações policiais sobre casos específicos que envolvem suspeitas de tráfico de influência e favorecimento em contratos governamentais.</p>
+      </section>
+      <section class="result-block">
+        <h4>Temas — todos os resultados finais</h4>
+        <ul class="theme-list">
+            <li class="theme-row">
+              <strong><span>2×</span> cenários eleitorais e pesquisas</strong>
+              <div><code class="source">art_515__politico_122418060191</code><code class="source">art_904__politico_122418060191</code></div>
+            </li>
+            
+            <li class="theme-row">
+              <strong><span>2×</span> acordos políticos e indicações</strong>
+              <div><code class="source">art_1709__politico_122418060191</code><code class="source">art_1723__politico_122418060191</code></div>
+            </li>
+            
+            <li class="theme-row">
+              <strong><span>1×</span> investigações e casos</strong>
+              <div><code class="source">art_1723__politico_122418060191</code></div>
+            </li>
+            </ul>
+      </section>
+      <section class="result-block">
+        <h4>Fontes do panorama — todas</h4>
+        <div class="source-row"><code class="source">art_1709__politico_122418060191</code><code class="source">art_1723__politico_122418060191</code><code class="source">art_515__politico_122418060191</code><code class="source">art_904__politico_122418060191</code></div>
+      </section>
+      <section class="warnings">
+        <h4>Avisos de verificação</h4>
+        <ul><li>tema &#x27;cenários eleitorais e pesquisas&#x27; declarou 5 ocorrências e lista 2 fontes distintas; gravado 2</li><li>tema &#x27;acordos políticos e indicações&#x27; declarou 3 ocorrências e lista 2 fontes distintas; gravado 2</li><li>tema &#x27;investigações e casos&#x27; declarou 2 ocorrências e lista 1 fontes distintas; gravado 1</li></ul>
+      </section>
+    </article>
+    </div>
+    </section>
+
+    <section class="stage" id="auditoria">
+      <div class="stage-head">
+        <div class="stage-title"><span class="eyebrow">EVIDÊNCIA</span><h2>Auditoria e limites do teste</h2></div>
+      </div>
+      <div class="audit-grid">
+        <article class="audit-card audit-json">
+          <h3>Identificação da execução</h3>
+          <pre><code>{
+  &quot;execucao_id&quot;: &quot;20260902T030116_054&quot;,
+  &quot;numero_rodada&quot;: 1,
+  &quot;arquivo_entrada&quot;: &quot;rodada_banco_demo_2026_08.json&quot;
+}</code></pre>
+        </article>
+        <article class="audit-card">
+          <h3>Execução comprovada</h3>
+          <dl>
+            <dt>Modelo</dt><dd>qwen3.5:9b</dd>
+            <dt>Capacidade máxima do lote</dt><dd>100</dd>
+            <dt>resumo_item</dt><dd>12 chamadas</dd>
+            <dt>consolidacao_lote</dt><dd>3 chamadas</dd>
+            <dt>consolidacao_final</dt><dd>3 chamadas</dd>
+            <dt>Erros</dt><dd>0</dd>
+            <dt>Avisos</dt><dd>3</dd>
+          </dl>
+        </article>
+        <article class="audit-card">
+          <h3>Integridade entre tabelas</h3>
+          <dl>
+            <dt>Pares artigo/pipeline</dt><dd>2283</dd>
+            <dt>Link coincidente</dt><dd>583</dd>
+            <dt class="critical">Outbox com link diferente</dt><dd class="critical">1700</dd>
+            <dt>Selecionados para o teste</dt><dd>12</dd>
+          </dl>
+        </article>
+        <article class="audit-card">
+          <h3>Limitações que não foram escondidas</h3>
+          <ul class="risk-list">
+            <li>O título jornalístico não existe no banco de classificação; o título mostrado é técnico e sintético.</li>
+            <li>O <code>paragraph_index</code> não é persistido em <code>tabela_classificacao</code>; ele foi associado pela outbox usando rótulo, score e ordem relativa.</li>
+            <li>O rótulo do item é uma regra provisória de maioria dos trechos; empate resulta em neutro.</li>
+            <li>A amostra é demonstrativa e balanceada por eixo, não uma amostra estatística da cobertura.</li>
+            <li>Lote 100 reduz chamadas, mas este teste tem apenas quatro resumos por eixo e não valida um prompt com 100 resumos.</li>
+            <li>A classificação léxica pode contrariar o sentido editorial do trecho; o Analyser preserva o eixo recebido.</li>
+          </ul>
+        </article>
+        <article class="audit-card">
+          <h3>Aviso produzido pelo próprio pipeline</h3>
+          <ul class="risk-list">
+            <li>[2026-08/neutro] tema &#x27;cenários eleitorais e pesquisas&#x27; declarou 5 ocorrências e lista 2 fontes distintas; gravado 2</li><li>[2026-08/neutro] tema &#x27;acordos políticos e indicações&#x27; declarou 3 ocorrências e lista 2 fontes distintas; gravado 2</li><li>[2026-08/neutro] tema &#x27;investigações e casos&#x27; declarou 2 ocorrências e lista 1 fontes distintas; gravado 1</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <footer>
+      Gerado somente a partir de artefatos locais · banco consultado com
+      <code>BEGIN TRANSACTION READ ONLY</code> e <code>ROLLBACK</code> ·
+      nenhuma credencial incorporada ao relatório.
+    </footer>
+  </main>
+</body>
+</html>

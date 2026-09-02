@@ -1,0 +1,80 @@
+{
+  "timestamp": "2026-09-01T03:12:07+00:00",
+  "rodada": "rodada_banco_demo_2026_08.json",
+  "ator_id": "122418060191",
+  "modelo": "qwen3.5:9b",
+  "lote": 100,
+  "prompts": {
+    "consolidacao_final.txt": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "consolidacao_lote.txt": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "formatos/compacto.txt": "fba9e89172e9414b7b4769d422d673f3aa2c2b0fa4e49f70c6b2b87f99739abc",
+    "formatos/detalhado.txt": "e8c5af98ffdefb22048177faaa10daf4ccab75fff309ca5a99aa74693ebd43c7",
+    "resumo_item.txt": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885"
+  },
+  "ids_entrada": [
+    "art_408__politico_122418060191",
+    "art_229__politico_122418060191",
+    "art_783__politico_122418060191",
+    "art_934__politico_122418060191",
+    "art_1700__politico_122418060191",
+    "art_8__politico_122418060191",
+    "art_1559__politico_122418060191",
+    "art_1703__politico_122418060191",
+    "art_1723__politico_122418060191",
+    "art_904__politico_122418060191",
+    "art_1709__politico_122418060191",
+    "art_515__politico_122418060191"
+  ],
+  "ids_resumidos_agora": [
+    "art_408__politico_122418060191",
+    "art_229__politico_122418060191",
+    "art_783__politico_122418060191",
+    "art_934__politico_122418060191",
+    "art_1700__politico_122418060191",
+    "art_8__politico_122418060191",
+    "art_1559__politico_122418060191",
+    "art_1703__politico_122418060191",
+    "art_1723__politico_122418060191",
+    "art_904__politico_122418060191",
+    "art_1709__politico_122418060191",
+    "art_515__politico_122418060191"
+  ],
+  "ids_do_cache": [],
+  "janelas_recalculadas": [
+    "2026-08"
+  ],
+  "panoramas_gravados": [
+    {
+      "janela": "2026-08",
+      "eixo": "negativo",
+      "versao": 1,
+      "lotes": 1
+    },
+    {
+      "janela": "2026-08",
+      "eixo": "positivo",
+      "versao": 1,
+      "lotes": 1
+    },
+    {
+      "janela": "2026-08",
+      "eixo": "neutro",
+      "versao": 1,
+      "lotes": 1
+    }
+  ],
+  "chamadas_por_tarefa": {
+    "resumo_item": 12,
+    "consolidacao_lote": 3,
+    "consolidacao_final": 3
+  },
+  "chamadas_total": 18,
+  "tokens": {
+    "prompt": 26075,
+    "resposta": 10197
+  },
+  "avisos_verificacao": [
+    "[2026-08/neutro] tema 'cenários eleitorais' declarou 5 ocorrências e lista 4 fontes distintas; gravado 4"
+  ],
+  "erros": []
+}

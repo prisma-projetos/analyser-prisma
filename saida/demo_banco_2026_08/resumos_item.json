@@ -1,0 +1,257 @@
+{
+  "art_408__politico_122418060191": {
+    "item_id": "art_408__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "negativo",
+    "veiculo": "O Globo",
+    "url": "https://oglobo.globo.com/politica/eleicoes-2026/noticia/2026/08/29/tarcisio-diz-que-brasileiro-consome-menos-porque-dinheiro-esta-indo-para-bet.ghtml",
+    "data": "2026-08-29",
+    "titulo": "Artigo 408 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "O governador Tarcísio de Freitas criticou o governo Lula ao afirmar que o brasileiro consome menos porque o dinheiro está indo para a bet, em discurso durante o lançamento de candidaturas do PP. A matéria registra também que o político mencionou empresas que entraram em recuperação judicial e repetiu temas sobre segurança pública explorados na campanha à reeleição.",
+    "temas": [
+      "governo Lula",
+      "consumo brasileiro",
+      "jogos de azar",
+      "recuperação judicial",
+      "segurança pública"
+    ],
+    "fonte_id": "art_408__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:05:10+00:00"
+  },
+  "art_229__politico_122418060191": {
+    "item_id": "art_229__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "negativo",
+    "veiculo": "UOL",
+    "url": "https://www.uol.com.br/esporte/futebol/ultimas-noticias/2026/08/28/vice-pode-ser-o-alckmin-ironiza-presidente-do-corinthians-sobre-musica.ghtm",
+    "data": "2026-08-28",
+    "titulo": "Artigo 229 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "Osmar Stabile, presidente do Corinthians, minimizou uma polêmica sobre o clipe da música 'Don't Panic' e ironizou que a referência ao vice-presidente na letra poderia ser Geraldo Alckmin. O ex-governador de São Paulo é citado como vice de Luiz Inácio Lula da Silva, atual presidente do Brasil.",
+    "temas": [
+      "polêmica musical",
+      "Geraldo Alckmin",
+      "Luiz Inácio Lula da Silva"
+    ],
+    "fonte_id": "art_229__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:05:16+00:00"
+  },
+  "art_783__politico_122418060191": {
+    "item_id": "art_783__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "negativo",
+    "veiculo": "Poder360",
+    "url": "https://www.poder360.com.br/poder-eleicoes-2026/elmano-chama-ciro-de-5a-coluna-do-bolsonarismo-em-sabatina/",
+    "data": "2026-08-27",
+    "titulo": "Artigo 783 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "O governador Elmano classificou Ciro Gomes como uma '5ª coluna do bolsonarismo' e afirmou que sua candidatura visa enfraquecer a força política de Lula no Ceará. Segundo o texto, Elmano criticou a chapa de Ciro por incluir aliados de quem pediu golpe e desmentiu a ideia de que parte do eleitorado ainda considera o ex-presidente como aliado do candidato.",
+    "temas": [
+      "bolsonarismo",
+      "Ciro Gomes",
+      "Lula no Ceará",
+      "alianças políticas",
+      "eleições estaduais"
+    ],
+    "fonte_id": "art_783__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:05:23+00:00"
+  },
+  "art_934__politico_122418060191": {
+    "item_id": "art_934__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "negativo",
+    "veiculo": "veículo não identificado",
+    "url": "https://veronoticias.com/politica/ratinho-junior-decreta-luto-apos-acidente-com-23-mortos-no-parana/",
+    "data": "2026-08-19",
+    "titulo": "Artigo 934 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "O ataque ocorreu após Baptista Júnior rebater Flávio Bolsonaro, que o acusou de fazer campanha pela reeleição de Lula. O militar afirmou desconhecer a origem da declaração.",
+    "temas": [
+      "ataque",
+      "Flávio Bolsonaro",
+      "Baptista Júnior",
+      "Lula",
+      "campanha eleitoral"
+    ],
+    "fonte_id": "art_934__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:05:29+00:00"
+  },
+  "art_1700__politico_122418060191": {
+    "item_id": "art_1700__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "positivo",
+    "veiculo": "veículo não identificado",
+    "url": "https://www.correiodopovo.com.br/not%C3%ADcias/pol%C3%ADtica/congresso-deve-decidir-sobre-taxa-das-blusinhas-nesta-segunda-1.1743672",
+    "data": "2026-08-31",
+    "titulo": "Artigo 1700 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "A comissão mista da Medida Provisória sobre as blusinhas avançou após conversas entre o presidente Luiz Inácio Lula da Silva e o senador Alcolumbre. A matéria indica que a decisão sobre a taxa das blusinhas deve ser tomada pelo Congresso nesta segunda-feira.",
+    "temas": [
+      "comissão mista",
+      "Medida Provisória",
+      "conversas presidenciais",
+      "taxa das blusinhas"
+    ],
+    "fonte_id": "art_1700__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:05:34+00:00"
+  },
+  "art_8__politico_122418060191": {
+    "item_id": "art_8__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "positivo",
+    "veiculo": "veículo não identificado",
+    "url": "https://www.correiobraziliense.com.br/politica/2026/08/7490489-btg-nexus-lula-esta-empatado-com-flavio-e-caiado-no-segundo-turno.html",
+    "data": "2026-08-31",
+    "titulo": "Artigo 8 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "Uma pesquisa divulgada pela BTG/Nexus indica que, na simulação de segundo turno, Luiz Inácio Lula da Silva aparece empatado com Flávio Bolsonaro e Ronaldo Caiado. A matéria também registra uma queda na aprovação do presidente Lula e destaca o crescimento eleitoral do escritor Augusto Cury como fator que impactou as intenções de voto dos demais candidatos.",
+    "temas": [
+      "pesquisa eleitoral",
+      "segundo turno",
+      "aprovação presidencial",
+      "crescimento de candidato",
+      "polarização"
+    ],
+    "fonte_id": "art_8__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:05:40+00:00"
+  },
+  "art_1559__politico_122418060191": {
+    "item_id": "art_1559__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "positivo",
+    "veiculo": "veículo não identificado",
+    "url": "https://platobr.com.br/a-ausencia-que-vale-o-que-motta-quer-de-lula-na-campanha",
+    "data": "2026-08-28",
+    "titulo": "Artigo 1559 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "O presidente da Câmara, Hugo Motta, busca uma postura discreta de Luiz Inácio Lula da Silva na campanha para a reeleição dele e para a eleição do pai, Nabor Wanderley, no Senado pela Paraíba. Embora o apoio de Lula seja considerado um ativo importante no estado, a ausência do presidente é vista como um favor estratégico para evitar conflitos com candidatos apoiados pelo petista. A estratégia envolve explorar sinais indiretos de boa relação, como vídeos sobre outras pautas, já que não há gravação recente de Lula apoiando explicitamente Nabor Wanderley.",
+    "temas": [
+      "Hugo Motta",
+      "Nabor Wanderley",
+      "Lula na Paraíba",
+      "Candidatos concorrentes",
+      "Apoio do PT"
+    ],
+    "fonte_id": "art_1559__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:05:51+00:00"
+  },
+  "art_1703__politico_122418060191": {
+    "item_id": "art_1703__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "positivo",
+    "veiculo": "veículo não identificado",
+    "url": "https://www.congressoemfoco.com.br/noticia/121713/carlos-viana-pressiona-congresso-e-alcolumbre-por-cpmi-do-lulinha",
+    "data": "2026-08-27",
+    "titulo": "Artigo 1703 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "O senador Carlos Viana (PSD-MG) afirmou ter avançado na coleta de assinaturas para criar uma CPMI destinada a investigar Fábio Luís Lula da Silva. O parlamentar indicou que parlamentares de diferentes partidos já aderiram ao requerimento, embora o número total de assinaturas ainda não tenha sido divulgado.",
+    "temas": [
+      "CPMI",
+      "investigação",
+      "coleta de assinaturas"
+    ],
+    "fonte_id": "art_1703__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:05:57+00:00"
+  },
+  "art_1723__politico_122418060191": {
+    "item_id": "art_1723__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "neutro",
+    "veiculo": "veículo não identificado",
+    "url": "https://www.gazetadopovo.com.br/sem-rodeios/dino-x-mendonca-tensao-no-caso-lulinha-e-derrota-de-moraes/",
+    "data": "2026-08-31",
+    "titulo": "Artigo 1723 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "O caso de Lulinha é alvo de três inquéritos da Polícia Federal que investigam suspeitas de tráfico de influência e possível favorecimento de empresas em contratos com o governo. A matéria também aborda a aproximação entre Lula, Alexandre de Moraes, Davi Alcolumbre e Hugo Motta, destacando encontros recentes e o anúncio de apoio mútuo entre as autoridades.",
+    "temas": [
+      "tráfico de influência",
+      "caso Lulinha",
+      "apoio político",
+      "Grande acordo"
+    ],
+    "fonte_id": "art_1723__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:06:04+00:00"
+  },
+  "art_904__politico_122418060191": {
+    "item_id": "art_904__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "neutro",
+    "veiculo": "veículo não identificado",
+    "url": "https://novonoticias.com.br/lula-flavio-bolsonaro-e-caiado-estao-empatados-tecnicamente-no-2o-turno-diz-nexus-btg/",
+    "data": "2026-08-31",
+    "titulo": "Artigo 904 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "Uma pesquisa divulgada pela Nexus/BTG indica que o presidente Lula tem empate técnico em cenários de segundo turno contra Flávio Bolsonaro e Ronaldo Caiado, mas apresenta vantagem sobre Romeu Zema. Os dados mostram as intenções de voto específicas para cada simulação eleitoral, incluindo a parcela de eleitores que optariam por votos brancos, nulos ou abstenção.",
+    "temas": [
+      "empate técnico",
+      "segundo turno",
+      "intenção de voto",
+      "cenários eleitorais"
+    ],
+    "fonte_id": "art_904__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:06:11+00:00"
+  },
+  "art_1709__politico_122418060191": {
+    "item_id": "art_1709__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "neutro",
+    "veiculo": "Metrópoles",
+    "url": "https://www.metropoles.com/brasil/tcu-dantas-oficializa-saida-nesta-2a-pacheco-deve-ocupar-vaga-em-novembro",
+    "data": "2026-08-31",
+    "titulo": "Artigo 1709 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "Após a reaproximação de Alcolumbre com o presidente Lula, um acordo foi fechado para que Pacheco ocupe a vaga na Suprema Corte em novembro. Aliados afirmam que Pacheco não pleiteou o cargo e não ficou chateado por não ter sido indicado diretamente por Lula, recebendo a indicação pela relevância do cargo e importância para os líderes do Senado.",
+    "temas": [
+      "Suprema Corte",
+      "indicação de ministro",
+      "acordo político",
+      "lideranças do Senado"
+    ],
+    "fonte_id": "art_1709__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:06:19+00:00"
+  },
+  "art_515__politico_122418060191": {
+    "item_id": "art_515__politico_122418060191",
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "rotulo": "neutro",
+    "veiculo": "veículo não identificado",
+    "url": "https://vermelho.org.br/2026/08/31/btg-nexus-lula-lidera-primeiro-turno-com-39-contra-33-de-flavio/",
+    "data": "2026-08-31",
+    "titulo": "Artigo 515 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+    "resumo": "Segundo pesquisa encomendada pelo BTG Pactual e divulgada pela Nexus, o presidente Luiz Inácio Lula da Silva lidera o primeiro turno com 39% das intenções de voto, à frente de Flávio Bolsonaro (33%). No cenário de segundo turno contra Flávio, Lula aparece numericamente à frente com 46%, embora esteja tecnicamente empatado considerando a margem de erro.",
+    "temas": [
+      "pesquisa eleitoral",
+      "intenção de voto",
+      "segundo turno",
+      "voto em branco"
+    ],
+    "fonte_id": "art_515__politico_122418060191",
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_resumo": "76dc66f9b5fdfd08466c48d712c74a91ec6de594ee2ea45fbefda6311ecd1885",
+    "criado_em": "2026-09-01T03:06:25+00:00"
+  }
+}

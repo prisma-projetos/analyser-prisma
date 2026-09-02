@@ -1,0 +1,180 @@
+[
+  {
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "eixo": "negativo",
+    "versao": 1,
+    "formato": "negativo",
+    "panorama": {
+      "ator_id": "122418060191",
+      "janela": "2026-08",
+      "eixo": "negativo",
+      "total_itens": 4,
+      "temas": [
+        {
+          "tema": "críticas ao governo Lula e economia",
+          "ocorrencias": 3,
+          "fontes": [
+            "art_229__politico_122418060191",
+            "art_408__politico_122418060191",
+            "art_783__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "ataques à campanha eleitoral de Lula",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_783__politico_122418060191",
+            "art_934__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "polêmica musical e alianças políticas",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_229__politico_122418060191",
+            "art_783__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "segurança pública e recuperação judicial",
+          "ocorrencias": 1,
+          "fontes": [
+            "art_408__politico_122418060191"
+          ]
+        }
+      ],
+      "fontes": [
+        "art_229__politico_122418060191",
+        "art_408__politico_122418060191",
+        "art_783__politico_122418060191",
+        "art_934__politico_122418060191"
+      ],
+      "texto": "As críticas registradas pela cobertura do mês concentram-se em questionamentos sobre a gestão econômica e as alianças políticas do governo federal. O noticiário registra cobranças de que o consumo brasileiro estaria caindo devido ao dinheiro indo para jogos de azar, além de apontar a presença de empresas em recuperação judicial como temas explorados na campanha à reeleição. A cobertura também reúne ataques diretos à chapa eleitoral de Lula, com acusações de que aliados do ex-presidente participam da candidatura de Ciro Gomes e que parte do eleitorado ainda o considera aliado. Outras matérias abordam polêmicas sobre clipes musicais que mencionam nomes políticos e discussões sobre a segurança pública no país."
+    },
+    "avisos": [],
+    "lotes": 1,
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "5817275523c5cd28812cbb2f531b114779cae0f1cfcd8261e5a2ae3c5f1e71f0",
+    "hash_prompt_formato": "9292e14358e7b266c5335faee44c7eb903f8816c5103cd8c52a77fd5ecc854ca",
+    "rodada": "rodada_banco_demo_2026_08.json",
+    "criado_em": "2026-09-02T03:03:49+00:00"
+  },
+  {
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "eixo": "positivo",
+    "versao": 1,
+    "formato": "positivo",
+    "panorama": {
+      "ator_id": "122418060191",
+      "janela": "2026-08",
+      "eixo": "positivo",
+      "total_itens": 4,
+      "temas": [
+        {
+          "tema": "campanha de reeleição de Lula",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_1559__politico_122418060191",
+            "art_8__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "avanço da comissão mista",
+          "ocorrencias": 1,
+          "fontes": [
+            "art_1700__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "criação de CPMI",
+          "ocorrencias": 1,
+          "fontes": [
+            "art_1703__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "pesquisa eleitoral da BTG/Nexus",
+          "ocorrencias": 1,
+          "fontes": [
+            "art_8__politico_122418060191"
+          ]
+        }
+      ],
+      "fontes": [
+        "art_1559__politico_122418060191",
+        "art_1700__politico_122418060191",
+        "art_1703__politico_122418060191",
+        "art_8__politico_122418060191"
+      ],
+      "texto": "Os elogios registrados pela cobertura do mês concentram-se na postura estratégica de Luiz Inácio Lula da Silva durante a campanha para sua reeleição e para a eleição do pai, Nabor Wanderley. As matérias destacam que o presidente busca evitar conflitos com candidatos apoiados pelo petista, explorando sinais indiretos de boa relação por meio de vídeos sobre outras pautas. Além disso, o noticiário aponta avanços legislativos importantes, como o progresso da comissão mista sobre a Medida Provisória das blusinhas após conversas entre Lula e Alcolumbre. A cobertura também registra iniciativas de controle social, com a coleta de assinaturas para criar uma CPMI destinada a investigar Fábio Luís Lula da Silva. Por fim, os veículos relatam dados de pesquisas que simulam cenários eleitorais e monitoram as intenções de voto no país."
+    },
+    "avisos": [],
+    "lotes": 1,
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "5817275523c5cd28812cbb2f531b114779cae0f1cfcd8261e5a2ae3c5f1e71f0",
+    "hash_prompt_formato": "3b0183dc7d88a449536e49143ed2aee2f1c5e2ea79a11c57dfd63ead99b61adf",
+    "rodada": "rodada_banco_demo_2026_08.json",
+    "criado_em": "2026-09-02T03:05:24+00:00"
+  },
+  {
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "eixo": "neutro",
+    "versao": 1,
+    "formato": "neutro",
+    "panorama": {
+      "ator_id": "122418060191",
+      "janela": "2026-08",
+      "eixo": "neutro",
+      "total_itens": 4,
+      "temas": [
+        {
+          "tema": "cenários eleitorais e pesquisas",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_515__politico_122418060191",
+            "art_904__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "acordos políticos e indicações",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_1709__politico_122418060191",
+            "art_1723__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "investigações e casos",
+          "ocorrencias": 1,
+          "fontes": [
+            "art_1723__politico_122418060191"
+          ]
+        }
+      ],
+      "fontes": [
+        "art_1709__politico_122418060191",
+        "art_1723__politico_122418060191",
+        "art_515__politico_122418060191",
+        "art_904__politico_122418060191"
+      ],
+      "texto": "O registro factual da cobertura do mês concentra-se em dados eleitorais e movimentações políticas no âmbito do Judiciário. As matérias apresentam resultados de pesquisas que indicam o presidente Lula à frente no primeiro turno, com cenários de empate técnico ou vantagem dependendo do adversário no segundo turno, além de menções a votos brancos e abstenção. Paralelamente, o noticiário relata a formação de acordos para indicação de ministros na Suprema Corte após reaproximações entre autoridades e líderes do Senado. Também são abordadas investigações policiais sobre casos específicos que envolvem suspeitas de tráfico de influência e favorecimento em contratos governamentais."
+    },
+    "avisos": [
+      "tema 'cenários eleitorais e pesquisas' declarou 5 ocorrências e lista 2 fontes distintas; gravado 2",
+      "tema 'acordos políticos e indicações' declarou 3 ocorrências e lista 2 fontes distintas; gravado 2",
+      "tema 'investigações e casos' declarou 2 ocorrências e lista 1 fontes distintas; gravado 1"
+    ],
+    "lotes": 1,
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "5817275523c5cd28812cbb2f531b114779cae0f1cfcd8261e5a2ae3c5f1e71f0",
+    "hash_prompt_formato": "c1aafeab7d8bad291d9cd1aa4110aaf69c7ebd1b2c63bdcff714eb908e8da6e9",
+    "rodada": "rodada_banco_demo_2026_08.json",
+    "criado_em": "2026-09-02T03:06:39+00:00"
+  }
+]

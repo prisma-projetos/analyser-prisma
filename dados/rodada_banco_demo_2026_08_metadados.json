@@ -1,0 +1,652 @@
+{
+  "schema_version": "1.0",
+  "extraido_em": "2026-09-01T02:57:23.170Z",
+  "objetivo": "Amostra real e rastreavel para teste integral do Prisma Analyser",
+  "origem": {
+    "banco": "prisma-dev",
+    "schema": "public",
+    "modo": "somente_leitura",
+    "transacao": "BEGIN TRANSACTION READ ONLY ... ROLLBACK",
+    "tabelas_consultadas": [
+      "classifier_analyser_outbox",
+      "tabela_classificacao",
+      "entidade_matching",
+      "tabela_midia"
+    ]
+  },
+  "ator": {
+    "id": "122418060191",
+    "tipo": "politico",
+    "nome": "LUIZ INÁCIO LULA DA SILVA"
+  },
+  "janela": "2026-08",
+  "amostragem": {
+    "itens_total": 12,
+    "trechos_total": 43,
+    "itens_por_rotulo": {
+      "negativo": 4,
+      "positivo": 4,
+      "neutro": 4
+    },
+    "criterio": "quatro artigos mais recentes por rotulo agregado entre pares artigo/outbox com link e contagens coerentes",
+    "finalidade": "demonstracao funcional; nao constitui amostra estatisticamente representativa",
+    "rotulo_item": "maioria simples dos rotulos dos trechos do ator; empate convertido em neutro"
+  },
+  "integridade_interbases": {
+    "pares_artigo_pipeline": 2283,
+    "links_coerentes": 583,
+    "outbox_sem_link_identico": 1700,
+    "sem_outbox": 0,
+    "multiplos_links_na_classificacao": 0,
+    "criterio_de_protecao": "a amostra inclui apenas artigo, pipeline e link exatamente coincidentes entre classificacao e outbox"
+  },
+  "adaptacao_contrato_analyser": {
+    "texto": "concatenacao somente dos trechos classificados para o ator, ordenados por paragraph_index",
+    "titulo": "titulo tecnico sintetico porque o banco de classificacao nao persiste o titulo jornalistico",
+    "rotulo_nao_injetado_no_texto": true,
+    "score_nao_injetado_no_texto": true
+  },
+  "itens": [
+    {
+      "item_id": "art_408__politico_122418060191",
+      "ordem_amostra": 1,
+      "id_artigo_scrape": 408,
+      "outbox_id": 2571,
+      "pipeline_version": "v1",
+      "link_noticia": "https://oglobo.globo.com/politica/eleicoes-2026/noticia/2026/08/29/tarcisio-diz-que-brasileiro-consome-menos-porque-dinheiro-esta-indo-para-bet.ghtml",
+      "data_publicacao": "2026-08-29",
+      "veiculo": "O Globo",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 408 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "negativo",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 1,
+        "positivo": 0,
+        "neutro": 0
+      },
+      "quantidade_trechos": 1,
+      "caracteres_texto_composto": 608,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 25069,
+          "paragraph_index": 2,
+          "rotulo": "negativo",
+          "score_confianca": 1,
+          "caracteres": 584
+        }
+      ]
+    },
+    {
+      "item_id": "art_229__politico_122418060191",
+      "ordem_amostra": 2,
+      "id_artigo_scrape": 229,
+      "outbox_id": 2414,
+      "pipeline_version": "v1",
+      "link_noticia": "https://www.uol.com.br/esporte/futebol/ultimas-noticias/2026/08/28/vice-pode-ser-o-alckmin-ironiza-presidente-do-corinthians-sobre-musica.ghtm",
+      "data_publicacao": "2026-08-28",
+      "veiculo": "UOL",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 229 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "negativo",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 1,
+        "positivo": 0,
+        "neutro": 0
+      },
+      "quantidade_trechos": 1,
+      "caracteres_texto_composto": 277,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 23537,
+          "paragraph_index": 1,
+          "rotulo": "negativo",
+          "score_confianca": 1,
+          "caracteres": 253
+        }
+      ]
+    },
+    {
+      "item_id": "art_783__politico_122418060191",
+      "ordem_amostra": 3,
+      "id_artigo_scrape": 783,
+      "outbox_id": 2885,
+      "pipeline_version": "v1",
+      "link_noticia": "https://www.poder360.com.br/poder-eleicoes-2026/elmano-chama-ciro-de-5a-coluna-do-bolsonarismo-em-sabatina/",
+      "data_publicacao": "2026-08-27",
+      "veiculo": "Poder360",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 783 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "negativo",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 2,
+        "positivo": 0,
+        "neutro": 1
+      },
+      "quantidade_trechos": 3,
+      "caracteres_texto_composto": 892,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 28082,
+          "paragraph_index": 4,
+          "rotulo": "negativo",
+          "score_confianca": 1,
+          "caracteres": 186
+        },
+        {
+          "id_classificacao": 28085,
+          "paragraph_index": 7,
+          "rotulo": "negativo",
+          "score_confianca": 1,
+          "caracteres": 325
+        },
+        {
+          "id_classificacao": 28086,
+          "paragraph_index": 8,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 305
+        }
+      ]
+    },
+    {
+      "item_id": "art_934__politico_122418060191",
+      "ordem_amostra": 4,
+      "id_artigo_scrape": 934,
+      "outbox_id": 3012,
+      "pipeline_version": "v1",
+      "link_noticia": "https://veronoticias.com/politica/ratinho-junior-decreta-luto-apos-acidente-com-23-mortos-no-parana/",
+      "data_publicacao": "2026-08-19",
+      "veiculo": "veículo não identificado",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 934 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "negativo",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 1,
+        "positivo": 0,
+        "neutro": 0
+      },
+      "quantidade_trechos": 1,
+      "caracteres_texto_composto": 197,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 30230,
+          "paragraph_index": 12,
+          "rotulo": "negativo",
+          "score_confianca": 1,
+          "caracteres": 172
+        }
+      ]
+    },
+    {
+      "item_id": "art_1700__politico_122418060191",
+      "ordem_amostra": 5,
+      "id_artigo_scrape": 1700,
+      "outbox_id": 3609,
+      "pipeline_version": "v1",
+      "link_noticia": "https://www.correiodopovo.com.br/not%C3%ADcias/pol%C3%ADtica/congresso-deve-decidir-sobre-taxa-das-blusinhas-nesta-segunda-1.1743672",
+      "data_publicacao": "2026-08-31",
+      "veiculo": "veículo não identificado",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 1700 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "positivo",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 0,
+        "positivo": 1,
+        "neutro": 0
+      },
+      "quantidade_trechos": 1,
+      "caracteres_texto_composto": 152,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 35271,
+          "paragraph_index": 3,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 128
+        }
+      ]
+    },
+    {
+      "item_id": "art_8__politico_122418060191",
+      "ordem_amostra": 6,
+      "id_artigo_scrape": 8,
+      "outbox_id": 2216,
+      "pipeline_version": "v1",
+      "link_noticia": "https://www.correiobraziliense.com.br/politica/2026/08/7490489-btg-nexus-lula-esta-empatado-com-flavio-e-caiado-no-segundo-turno.html",
+      "data_publicacao": "2026-08-31",
+      "veiculo": "veículo não identificado",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 8 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "positivo",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 0,
+        "positivo": 3,
+        "neutro": 2
+      },
+      "quantidade_trechos": 5,
+      "caracteres_texto_composto": 1818,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 20980,
+          "paragraph_index": 0,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 461
+        },
+        {
+          "id_classificacao": 20985,
+          "paragraph_index": 5,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 72
+        },
+        {
+          "id_classificacao": 20988,
+          "paragraph_index": 6,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 354
+        },
+        {
+          "id_classificacao": 20996,
+          "paragraph_index": 7,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 564
+        },
+        {
+          "id_classificacao": 20998,
+          "paragraph_index": 9,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 239
+        }
+      ]
+    },
+    {
+      "item_id": "art_1559__politico_122418060191",
+      "ordem_amostra": 7,
+      "id_artigo_scrape": 1559,
+      "outbox_id": 3489,
+      "pipeline_version": "v1",
+      "link_noticia": "https://platobr.com.br/a-ausencia-que-vale-o-que-motta-quer-de-lula-na-campanha",
+      "data_publicacao": "2026-08-28",
+      "veiculo": "veículo não identificado",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 1559 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "positivo",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 0,
+        "positivo": 3,
+        "neutro": 1
+      },
+      "quantidade_trechos": 4,
+      "caracteres_texto_composto": 2622,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 34402,
+          "paragraph_index": 0,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 757
+        },
+        {
+          "id_classificacao": 34404,
+          "paragraph_index": 1,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 713
+        },
+        {
+          "id_classificacao": 34406,
+          "paragraph_index": 2,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 428
+        },
+        {
+          "id_classificacao": 34409,
+          "paragraph_index": 3,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 622
+        }
+      ]
+    },
+    {
+      "item_id": "art_1703__politico_122418060191",
+      "ordem_amostra": 8,
+      "id_artigo_scrape": 1703,
+      "outbox_id": 3612,
+      "pipeline_version": "v1",
+      "link_noticia": "https://www.congressoemfoco.com.br/noticia/121713/carlos-viana-pressiona-congresso-e-alcolumbre-por-cpmi-do-lulinha",
+      "data_publicacao": "2026-08-27",
+      "veiculo": "veículo não identificado",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 1703 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "positivo",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 0,
+        "positivo": 1,
+        "neutro": 0
+      },
+      "quantidade_trechos": 1,
+      "caracteres_texto_composto": 412,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 35291,
+          "paragraph_index": 3,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 388
+        }
+      ]
+    },
+    {
+      "item_id": "art_1723__politico_122418060191",
+      "ordem_amostra": 9,
+      "id_artigo_scrape": 1723,
+      "outbox_id": 3626,
+      "pipeline_version": "v1",
+      "link_noticia": "https://www.gazetadopovo.com.br/sem-rodeios/dino-x-mendonca-tensao-no-caso-lulinha-e-derrota-de-moraes/",
+      "data_publicacao": "2026-08-31",
+      "veiculo": "veículo não identificado",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 1723 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "neutro",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 0,
+        "positivo": 1,
+        "neutro": 3
+      },
+      "quantidade_trechos": 4,
+      "caracteres_texto_composto": 927,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 35398,
+          "paragraph_index": 1,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 36
+        },
+        {
+          "id_classificacao": 35399,
+          "paragraph_index": 2,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 326
+        },
+        {
+          "id_classificacao": 35400,
+          "paragraph_index": 3,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 56
+        },
+        {
+          "id_classificacao": 35401,
+          "paragraph_index": 4,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 407
+        }
+      ]
+    },
+    {
+      "item_id": "art_904__politico_122418060191",
+      "ordem_amostra": 10,
+      "id_artigo_scrape": 904,
+      "outbox_id": 2995,
+      "pipeline_version": "v1",
+      "link_noticia": "https://novonoticias.com.br/lula-flavio-bolsonaro-e-caiado-estao-empatados-tecnicamente-no-2o-turno-diz-nexus-btg/",
+      "data_publicacao": "2026-08-31",
+      "veiculo": "veículo não identificado",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 904 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "neutro",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 0,
+        "positivo": 0,
+        "neutro": 4
+      },
+      "quantidade_trechos": 4,
+      "caracteres_texto_composto": 1010,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 30127,
+          "paragraph_index": 0,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 241
+        },
+        {
+          "id_classificacao": 30131,
+          "paragraph_index": 1,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 203
+        },
+        {
+          "id_classificacao": 30132,
+          "paragraph_index": 2,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 219
+        },
+        {
+          "id_classificacao": 30133,
+          "paragraph_index": 3,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 245
+        }
+      ]
+    },
+    {
+      "item_id": "art_1709__politico_122418060191",
+      "ordem_amostra": 11,
+      "id_artigo_scrape": 1709,
+      "outbox_id": 3618,
+      "pipeline_version": "v1",
+      "link_noticia": "https://www.metropoles.com/brasil/tcu-dantas-oficializa-saida-nesta-2a-pacheco-deve-ocupar-vaga-em-novembro",
+      "data_publicacao": "2026-08-31",
+      "veiculo": "Metrópoles",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 1709 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "neutro",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 0,
+        "positivo": 0,
+        "neutro": 3
+      },
+      "quantidade_trechos": 3,
+      "caracteres_texto_composto": 711,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 35336,
+          "paragraph_index": 12,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 25
+        },
+        {
+          "id_classificacao": 35337,
+          "paragraph_index": 13,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 252
+        },
+        {
+          "id_classificacao": 35338,
+          "paragraph_index": 15,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 355
+        }
+      ]
+    },
+    {
+      "item_id": "art_515__politico_122418060191",
+      "ordem_amostra": 12,
+      "id_artigo_scrape": 515,
+      "outbox_id": 2648,
+      "pipeline_version": "v1",
+      "link_noticia": "https://vermelho.org.br/2026/08/31/btg-nexus-lula-lidera-primeiro-turno-com-39-contra-33-de-flavio/",
+      "data_publicacao": "2026-08-31",
+      "veiculo": "veículo não identificado",
+      "titulo_original_disponivel": false,
+      "titulo_utilizado": "Artigo 515 — trechos classificados sobre LUIZ INÁCIO LULA DA SILVA",
+      "titulo_origem": "sintetico_tecnico",
+      "rotulo_item": "neutro",
+      "regra_rotulo_item": "maioria_dos_rotulos_dos_trechos; empate_resulta_em_neutro",
+      "contagem_rotulos": {
+        "negativo": 0,
+        "positivo": 1,
+        "neutro": 14
+      },
+      "quantidade_trechos": 15,
+      "caracteres_texto_composto": 2425,
+      "pareamento_paragraph_index": "inferido_por_rotulo_score_e_ordem_relativa; tabela_classificacao_nao_persiste_paragraph_index",
+      "trechos": [
+        {
+          "id_classificacao": 25824,
+          "paragraph_index": 0,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 67
+        },
+        {
+          "id_classificacao": 25827,
+          "paragraph_index": 3,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 269
+        },
+        {
+          "id_classificacao": 25831,
+          "paragraph_index": 4,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 196
+        },
+        {
+          "id_classificacao": 25844,
+          "paragraph_index": 15,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 192
+        },
+        {
+          "id_classificacao": 25848,
+          "paragraph_index": 17,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 38
+        },
+        {
+          "id_classificacao": 25851,
+          "paragraph_index": 18,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 255
+        },
+        {
+          "id_classificacao": 25853,
+          "paragraph_index": 20,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 37
+        },
+        {
+          "id_classificacao": 25855,
+          "paragraph_index": 21,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 35
+        },
+        {
+          "id_classificacao": 25856,
+          "paragraph_index": 22,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 31
+        },
+        {
+          "id_classificacao": 25858,
+          "paragraph_index": 23,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 33
+        },
+        {
+          "id_classificacao": 25860,
+          "paragraph_index": 24,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 200
+        },
+        {
+          "id_classificacao": 25863,
+          "paragraph_index": 25,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 30
+        },
+        {
+          "id_classificacao": 25865,
+          "paragraph_index": 26,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 222
+        },
+        {
+          "id_classificacao": 25866,
+          "paragraph_index": 27,
+          "rotulo": "positivo",
+          "score_confianca": 1,
+          "caracteres": 155
+        },
+        {
+          "id_classificacao": 25867,
+          "paragraph_index": 28,
+          "rotulo": "neutro",
+          "score_confianca": 0,
+          "caracteres": 265
+        }
+      ]
+    }
+  ]
+}

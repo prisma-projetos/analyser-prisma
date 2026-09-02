@@ -1,0 +1,302 @@
+[
+  {
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "eixo": "negativo",
+    "versao": 1,
+    "formato": "detalhado",
+    "panorama": {
+      "ator_id": "122418060191",
+      "janela": "2026-08",
+      "eixo": "negativo",
+      "total_itens": 4,
+      "temas": [
+        {
+          "tema": "campanha eleitoral e ataques",
+          "ocorrencias": 3,
+          "fontes": [
+            "art_934__politico_122418060191",
+            "art_783__politico_122418060191",
+            "art_408__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "governo Lula e economia",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_408__politico_122418060191",
+            "art_783__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "polêmica musical e vice-presidente",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_229__politico_122418060191",
+            "art_783__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "bolsonarismo e alianças",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_783__politico_122418060191",
+            "art_934__politico_122418060191"
+          ]
+        }
+      ],
+      "fontes": [
+        "art_229__politico_122418060191",
+        "art_408__politico_122418060191",
+        "art_783__politico_122418060191",
+        "art_934__politico_122418060191"
+      ],
+      "texto": null,
+      "fatos_mais_citados": [
+        {
+          "descricao": "Osmar Stabile minimizou polêmica sobre clipe de música e ironizou referência ao vice-presidente na letra.",
+          "fontes": [
+            "art_229__politico_122418060191"
+          ]
+        },
+        {
+          "descricao": "Governador Tarcísio de Freitas criticou governo Lula afirmando que o consumo cai porque o dinheiro vai para jogos de azar.",
+          "fontes": [
+            "art_408__politico_122418060191"
+          ]
+        },
+        {
+          "descricao": "Elmano classificou Ciro Gomes como 5ª coluna do bolsonarismo e criticou sua chapa no Ceará.",
+          "fontes": [
+            "art_783__politico_122418060191"
+          ]
+        },
+        {
+          "descricao": "Baptista Júnior rebateu Flávio Bolsonaro, que acusou o militar de fazer campanha pela reeleição de Lula.",
+          "fontes": [
+            "art_934__politico_122418060191"
+          ]
+        }
+      ],
+      "respostas_registradas": [
+        {
+          "citado": "Osmar Stabile",
+          "houve_resposta": true,
+          "fontes": [
+            "art_229__politico_122418060191"
+          ]
+        },
+        {
+          "citado": "Tarcísio de Freitas",
+          "houve_resposta": true,
+          "fontes": [
+            "art_408__politico_122418060191"
+          ]
+        },
+        {
+          "citado": "Elmano",
+          "houve_resposta": true,
+          "fontes": [
+            "art_783__politico_122418060191"
+          ]
+        },
+        {
+          "citado": "Baptista Júnior",
+          "houve_resposta": true,
+          "fontes": [
+            "art_934__politico_122418060191"
+          ]
+        },
+        {
+          "citado": "Flávio Bolsonaro",
+          "houve_resposta": true,
+          "fontes": [
+            "art_934__politico_122418060191"
+          ]
+        }
+      ]
+    },
+    "avisos": [],
+    "lotes": 1,
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "e8c5af98ffdefb22048177faaa10daf4ccab75fff309ca5a99aa74693ebd43c7",
+    "rodada": "rodada_banco_demo_2026_08.json",
+    "criado_em": "2026-09-01T03:08:24+00:00"
+  },
+  {
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "eixo": "positivo",
+    "versao": 1,
+    "formato": "detalhado",
+    "panorama": {
+      "ator_id": "122418060191",
+      "janela": "2026-08",
+      "eixo": "positivo",
+      "total_itens": 4,
+      "temas": [
+        {
+          "tema": "campanha de reeleição de Lula",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_1559__politico_122418060191",
+            "art_8__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "pesquisa eleitoral da BTG/Nexus",
+          "ocorrencias": 1,
+          "fontes": [
+            "art_8__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "avanço da comissão mista",
+          "ocorrencias": 1,
+          "fontes": [
+            "art_1700__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "criação de CPMI",
+          "ocorrencias": 1,
+          "fontes": [
+            "art_1703__politico_122418060191"
+          ]
+        }
+      ],
+      "fontes": [
+        "art_1559__politico_122418060191",
+        "art_1700__politico_122418060191",
+        "art_1703__politico_122418060191",
+        "art_8__politico_122418060191"
+      ],
+      "texto": null,
+      "fatos_mais_citados": [
+        {
+          "descricao": "O presidente da Câmara, Hugo Motta, busca uma postura discreta de Luiz Inácio Lula da Silva na campanha para a reeleição dele e para a eleição do pai, Nabor Wanderley, no Senado pela Paraíba.",
+          "fontes": [
+            "art_1559__politico_122418060191"
+          ]
+        },
+        {
+          "descricao": "A estratégia envolve explorar sinais indiretos de boa relação, como vídeos sobre outras pautas, já que não há gravação recente de Lula apoiando explicitamente Nabor Wanderley.",
+          "fontes": [
+            "art_1559__politico_122418060191"
+          ]
+        },
+        {
+          "descricao": "A comissão mista da Medida Provisória sobre as blusinhas avançou após conversas entre o presidente Luiz Inácio Lula da Silva e o senador Alcolumbre.",
+          "fontes": [
+            "art_1700__politico_122418060191"
+          ]
+        },
+        {
+          "descricao": "O senador Carlos Viana (PSD-MG) afirmou ter avançado na coleta de assinaturas para criar uma CPMI destinada a investigar Fábio Luís Lula da Silva.",
+          "fontes": [
+            "art_1703__politico_122418060191"
+          ]
+        },
+        {
+          "descricao": "Uma pesquisa divulgada pela BTG/Nexus indica que, na simulação de segundo turno, Luiz Inácio Lula da Silva aparece empatado com Flávio Bolsonaro e Ronaldo Caiado.",
+          "fontes": [
+            "art_8__politico_122418060191"
+          ]
+        }
+      ],
+      "respostas_registradas": [
+        {
+          "citado": "Hugo Motta",
+          "houve_resposta": true,
+          "fontes": [
+            "art_1559__politico_122418060191"
+          ]
+        },
+        {
+          "citado": "Carlos Viana",
+          "houve_resposta": true,
+          "fontes": [
+            "art_1703__politico_122418060191"
+          ]
+        }
+      ]
+    },
+    "avisos": [],
+    "lotes": 1,
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "e8c5af98ffdefb22048177faaa10daf4ccab75fff309ca5a99aa74693ebd43c7",
+    "rodada": "rodada_banco_demo_2026_08.json",
+    "criado_em": "2026-09-01T03:10:29+00:00"
+  },
+  {
+    "ator_id": "122418060191",
+    "janela": "2026-08",
+    "eixo": "neutro",
+    "versao": 1,
+    "formato": "compacto",
+    "panorama": {
+      "ator_id": "122418060191",
+      "janela": "2026-08",
+      "eixo": "neutro",
+      "total_itens": 4,
+      "temas": [
+        {
+          "tema": "cenários eleitorais",
+          "ocorrencias": 4,
+          "fontes": [
+            "art_1709__politico_122418060191",
+            "art_1723__politico_122418060191",
+            "art_515__politico_122418060191",
+            "art_904__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "pesquisa eleitoral",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_515__politico_122418060191",
+            "art_904__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "apoio político",
+          "ocorrencias": 2,
+          "fontes": [
+            "art_1709__politico_122418060191",
+            "art_1723__politico_122418060191"
+          ]
+        },
+        {
+          "tema": "caso Lulinha",
+          "ocorrencias": 1,
+          "fontes": [
+            "art_1723__politico_122418060191"
+          ]
+        }
+      ],
+      "fontes": [
+        "art_1709__politico_122418060191",
+        "art_1723__politico_122418060191",
+        "art_515__politico_122418060191",
+        "art_904__politico_122418060191"
+      ],
+      "texto": "O noticiário do mês registra cenários eleitorais e apoios políticos entre autoridades (art_515__politico_122418060191, art_904__politico_122418060191, art_1709__politico_122418060191, art_1723__politico_122418060191). A cobertura também aborda pesquisas sobre intenções de voto e o caso Lulinha sob investigação (art_515__politico_122418060191, art_904__politico_122418060191, art_1723__politico_122418060191).",
+      "fatos_mais_citados": [],
+      "respostas_registradas": []
+    },
+    "avisos": [
+      "tema 'cenários eleitorais' declarou 5 ocorrências e lista 4 fontes distintas; gravado 4"
+    ],
+    "lotes": 1,
+    "modelo": "qwen3.5:9b",
+    "hash_prompt_lote": "dcc15dfbd1d101b38d9b676ac7fab4f6e421ed7e1d23fe485aa8c2fe2ff95202",
+    "hash_prompt_final": "c8d3193c816df9c660f7aeac61c17ec06cf8274c12be5cf3a8164a63da280e2e",
+    "hash_prompt_formato": "fba9e89172e9414b7b4769d422d673f3aa2c2b0fa4e49f70c6b2b87f99739abc",
+    "rodada": "rodada_banco_demo_2026_08.json",
+    "criado_em": "2026-09-01T03:12:07+00:00"
+  }
+]
