@@ -218,3 +218,132 @@ def test_topologia_so_e_declarada_quando_configurada_expressamente() -> None:
         "queue_declare",
         "queue_bind",
     ]
+
+
+# --------------------------------------------------------------------------------------
+# Limite de mensagens por execução
+# --------------------------------------------------------------------------------------
+
+
+class CanalComEntregas(CanalFalso):
+    """Canal que entrega mensagens até o consumidor mandar parar."""
+
+    def __init__(self, quantas: int) -> None:
+        super().__init__()
+        self.pendentes = quantas
+        self.parou = False
+        self._callback: Any = None
+
+    def basic_consume(self, *, queue: str, on_message_callback: Any, auto_ack: bool) -> None:
+        self._callback = on_message_callback
+
+    def start_consuming(self) -> None:
+        while not self.parou and self.pendentes > 0:
+            self.pendentes -= 1
+            self._callback(self, MetodoFalso(delivery_tag=self.pendentes), None, payload_valido())
+
+    def stop_consuming(self) -> None:
+        self.parou = True
+
+
+class ConexaoComEntregas:
+    def __init__(self, canal: CanalComEntregas) -> None:
+        self._canal = canal
+        self.is_open = True
+        self.fechada = 0
+
+    def channel(self) -> CanalComEntregas:
+        return self._canal
+
+    def close(self) -> None:
+        self.fechada += 1
+        self.is_open = False
+
+
+class InboxContadora:
+    def __init__(self) -> None:
+        self.registrados = 0
+
+    def registrar(self, evento: NotificacaoClassifier, payload: bytes) -> RegistroInbox:
+        self.registrados += 1
+        return RegistroInbox(event_id=f"e{self.registrados}", novo=True, tipo="recebido")
+
+    def registrar_rejeitado(self, payload: bytes, erro: str) -> RegistroInbox:  # pragma: no cover
+        raise AssertionError("payload válido não deveria ser rejeitado")
+
+
+def test_limite_encerra_a_execucao_e_nao_reabre_conexao() -> None:
+    """O limite para o processo, não só a conexão.
+
+    `stop_consuming()` faz `start_consuming()` retornar SEM erro. Sem a checagem no fim do
+    laço de reconexão, `consumir_para_sempre` abriria uma conexão nova e continuaria — o
+    limite pararia uma conexão de cada vez e a fila seria drenada em blocos, que é o
+    oposto do que ele existe para evitar.
+    """
+    inbox = InboxContadora()
+    canal = CanalComEntregas(quantas=50)
+    conexoes: list[ConexaoComEntregas] = []
+
+    def fabrica(_parametros: Any) -> ConexaoComEntregas:
+        conexao = ConexaoComEntregas(canal)
+        conexoes.append(conexao)
+        return conexao
+
+    consumidor = ConsumidorRabbitMQ(
+        ConfiguracaoRabbitMQ.from_env(ambiente_rabbit()),
+        inbox,
+        connection_factory=fabrica,
+        limite=3,
+    )
+    consumidor.consumir_para_sempre()
+
+    assert inbox.registrados == 3, "consumiu além do limite"
+    assert len(canal.acks) == 3
+    assert len(conexoes) == 1, "reabriu conexão depois de atingir o limite"
+    assert canal.pendentes == 47, "as mensagens restantes têm de ficar na fila"
+    assert consumidor.atingiu_limite()
+
+
+def test_sem_limite_o_consumo_segue_ate_a_fila_esvaziar() -> None:
+    """Sem limite, nada muda: o comportamento anterior é preservado."""
+    inbox = InboxContadora()
+    canal = CanalComEntregas(quantas=5)
+
+    consumidor = ConsumidorRabbitMQ(
+        ConfiguracaoRabbitMQ.from_env(ambiente_rabbit()),
+        inbox,
+        connection_factory=lambda _p: ConexaoComEntregas(canal),
+        limite=None,
+    )
+    # Sem limite `consumir_para_sempre` reconectaria eternamente; aqui exercita-se uma
+    # conexão só, que é o que o laço faz por vez.
+    consumidor._consumir_uma_conexao()
+
+    assert inbox.registrados == 5
+    assert consumidor.atingiu_limite() is False
+
+
+def test_commit_acontece_antes_do_ack() -> None:
+    """A ordem importa: ACK antes do commit perderia a mensagem se o commit falhasse.
+
+    O broker descarta a mensagem ao receber o ACK. Se o commit viesse depois e falhasse,
+    o evento sumiria da fila sem ter sido gravado em lugar nenhum.
+    """
+    ordem: list[str] = []
+
+    class CanalQueRegistraOrdem(CanalComEntregas):
+        def basic_ack(self, *, delivery_tag: int) -> None:
+            ordem.append("ack")
+            super().basic_ack(delivery_tag=delivery_tag)
+
+    canal = CanalQueRegistraOrdem(quantas=2)
+    consumidor = ConsumidorRabbitMQ(
+        ConfiguracaoRabbitMQ.from_env(ambiente_rabbit()),
+        InboxContadora(),
+        connection_factory=lambda _p: ConexaoComEntregas(canal),
+        limite=2,
+        ao_confirmar=lambda: ordem.append("commit"),
+    )
+    consumidor.consumir_para_sempre()
+
+    assert ordem == ["commit", "ack", "commit", "ack"]

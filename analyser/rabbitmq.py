@@ -246,11 +246,22 @@ class ConsumidorRabbitMQ:
         *,
         connection_factory: Callable[[pika.ConnectionParameters], Any] = pika.BlockingConnection,
         sleeper: Callable[[float], None] = time.sleep,
+        limite: int | None = None,
+        ao_confirmar: Callable[[], None] | None = None,
     ) -> None:
         self.configuracao = configuracao
         self.inbox = inbox
         self._connection_factory = connection_factory
         self._sleeper = sleeper
+        # Teto de mensagens desta execução. Existe porque a fila pode ter acumulado
+        # milhares de eventos enquanto ninguém consumia, e drenar tudo de uma vez custa
+        # horas de modelo. Com o limite dá para processar um lote, conferir o resultado e
+        # decidir se continua.
+        self._limite = limite
+        # Chamado após cada mensagem confirmada. É o gancho onde quem consome commita a
+        # transação — o ACK só pode acontecer depois que o estado estiver durável.
+        self._ao_confirmar = ao_confirmar
+        self._confirmadas = 0
 
     def _parametros_conexao(self) -> pika.ConnectionParameters:
         cfg = self.configuracao
@@ -316,7 +327,7 @@ class ConsumidorRabbitMQ:
                 registro.event_id,
                 registro.novo,
             )
-            canal.basic_ack(delivery_tag=metodo.delivery_tag)
+            self._confirmar(canal, metodo)
             return
 
         try:
@@ -332,7 +343,21 @@ class ConsumidorRabbitMQ:
             registro.novo,
             evento.article_id,
         )
+        self._confirmar(canal, metodo)
+
+    def _confirmar(self, canal: Any, metodo: Any) -> None:
+        """Confirma a mensagem e conta para o limite desta execução.
+
+        O commit vem ANTES do ACK, sempre: confirmar primeiro e commitar depois perderia
+        a mensagem se o commit falhasse — o broker já a teria descartado.
+        """
+        if self._ao_confirmar is not None:
+            self._ao_confirmar()
         canal.basic_ack(delivery_tag=metodo.delivery_tag)
+        self._confirmadas += 1
+        if self._limite is not None and self._confirmadas >= self._limite:
+            logger.info("Limite de %s mensagens atingido; encerrando o consumo.", self._limite)
+            canal.stop_consuming()
 
     def _consumir_uma_conexao(self) -> None:
         connection = None
@@ -352,8 +377,19 @@ class ConsumidorRabbitMQ:
         finally:
             self._fechar(connection)
 
+    def atingiu_limite(self) -> bool:
+        """Se o teto de mensagens desta execução já foi alcançado."""
+        return self._limite is not None and self._confirmadas >= self._limite
+
     def consumir_para_sempre(self) -> None:
-        """Mantém o consumidor ativo e reconecta após falhas de transporte."""
+        """Mantém o consumidor ativo e reconecta após falhas de transporte.
+
+        Com `limite` definido, encerra ao alcançá-lo. A checagem no fim do laço não é
+        redundante: `stop_consuming()` faz `start_consuming()` retornar SEM erro, e sem
+        ela o `while` abriria uma conexão nova e continuaria consumindo — o limite
+        pararia uma conexão de cada vez e a fila seria drenada em blocos de N, que é
+        exatamente o contrário do que ele existe para evitar.
+        """
         while True:
             try:
                 self._consumir_uma_conexao()
@@ -366,4 +402,14 @@ class ConsumidorRabbitMQ:
                     self.configuracao.reconnect_delay_seconds,
                 )
                 self._sleeper(self.configuracao.reconnect_delay_seconds)
+                continue
+
+            # Retornou sem exceção. Se foi o limite, a execução acabou; se o broker
+            # encerrou o consumo por outro motivo, reconectar é o comportamento certo.
+            if self.atingiu_limite():
+                logger.info(
+                    "Encerrando: %s mensagens confirmadas nesta execução.",
+                    self._confirmadas,
+                )
+                return
 
