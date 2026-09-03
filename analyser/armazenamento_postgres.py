@@ -96,6 +96,10 @@ class ArmazenamentoPostgres:
 
     @staticmethod
     def _para_registro(linha: dict[str, Any], ator_id: str) -> RegistroResumo:
+        # `data_publicacao` é TIMESTAMPTZ e `RegistroResumo.data` é `date`. O Pydantic
+        # recusa converter datetime com hora diferente de zero, então a conversão é
+        # explícita aqui, na fronteira entre o banco e o schema.
+        publicacao = linha["data_publicacao"]
         return RegistroResumo(
             item_id=linha["item_id"],
             ator_id=ator_id,
@@ -103,7 +107,7 @@ class ArmazenamentoPostgres:
             rotulo=linha["rotulo_definitivo"],
             veiculo=linha["veiculo"] or "veículo não identificado",
             url=linha["link_noticia"] or "",
-            data=(linha["data_publicacao"] or date.today()),
+            data=publicacao.date() if publicacao else date.today(),
             titulo=linha["titulo_sintetico"] or "",
             resumo=linha["resumo"],
             temas=linha["temas_json"] or [],
@@ -152,6 +156,51 @@ class ArmazenamentoPostgres:
                 params,
             ).fetchall()
         return [self._para_registro(l, ator_id) for l in linhas]
+
+    def gravar_item(self, item: Any, evento_id: int) -> bool:
+        """Cria a linha de um item enriquecido, com `status='novo'` e sem resumo.
+
+        Devolve `True` se a linha nasceu agora, `False` se já existia. `ON CONFLICT DO
+        NOTHING` em vez de consultar antes: o mesmo artigo pode voltar por reprocessamento
+        ou por outra réplica, e deixar o banco decidir é o que torna isso correto com mais
+        de um worker.
+
+        Não sobrescreve item existente de propósito — o resumo dele já pode estar pago.
+        """
+        cur = self.conexao.execute(
+            """
+            INSERT INTO analyser_item (
+                item_id, evento_id, article_id, entity_type,
+                nr_titulo_eleitoral_candidato, nr_partido, ator_nome, id_midia,
+                link_noticia, data_publicacao, janela_mes, rotulo_definitivo,
+                regra_agregacao_versao, trechos_json, conteudo_hash, status
+            ) VALUES (
+                %(item_id)s, %(evento_id)s, %(article_id)s, %(entity_type)s,
+                %(nr_titulo)s, %(nr_partido)s, %(ator_nome)s, %(id_midia)s,
+                %(link)s, %(data)s, %(janela)s, %(rotulo)s,
+                %(regra)s, %(trechos)s, %(hash)s, 'novo'
+            )
+            ON CONFLICT (item_id) DO NOTHING
+            """,
+            {
+                "item_id": item.item_id,
+                "evento_id": evento_id,
+                "article_id": item.article_id,
+                "entity_type": item.entity_type,
+                "nr_titulo": item.entity_id if item.entity_type == "politico" else None,
+                "nr_partido": int(item.entity_id) if item.entity_type == "partido" else None,
+                "ator_nome": item.ator_nome,
+                "id_midia": item.id_midia,
+                "link": item.link_noticia,
+                "data": item.data_publicacao,
+                "janela": item.janela_mes,
+                "rotulo": item.rotulo,
+                "regra": item.regra_agregacao_versao,
+                "trechos": Jsonb([t.para_json() for t in item.trechos]),
+                "hash": item.conteudo_hash,
+            },
+        )
+        return cur.rowcount > 0
 
     def gravar_resumo(self, registro: RegistroResumo) -> None:
         """Grava o resumo de um item e o marca `resumido`.
