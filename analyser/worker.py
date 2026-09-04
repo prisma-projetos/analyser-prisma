@@ -19,6 +19,7 @@ não a reentrega do broker, que já não vai acontecer.
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -26,7 +27,11 @@ import psycopg
 from psycopg.rows import dict_row
 
 from analyser.armazenamento import agora_iso
-from analyser.armazenamento_postgres import ArmazenamentoPostgres, Ator
+from analyser.armazenamento_postgres import (
+    ArmazenamentoPostgres,
+    Ator,
+    AuditoriaExecucaoPostgres,
+)
 from analyser.config import Config
 from analyser.enriquecimento import Enriquecedor, ItemEnriquecido
 from analyser.modelos import ErroDeValidacao, Modelo, gerar_validado
@@ -55,6 +60,12 @@ class ResultadoWorker:
     panoramas_gravados: int = 0
     avisos: list[str] = field(default_factory=list)
     erros: list[str] = field(default_factory=list)
+    execucao_id: int | None = None
+    #: Tokens de prompt e de resposta somados por tarefa. Passou a existir em 3 de
+    #: setembro de 2026: a execução que quebrou por tamanho de prompt foi a mesma que
+    #: não soube dizer quanto tinha gastado. As constantes de dimensionamento em
+    #: `config.py` são estimativas justamente porque este dado não era guardado.
+    tokens: Counter[str] = field(default_factory=Counter)
 
 
 class Worker:
@@ -72,6 +83,185 @@ class Worker:
         self.enriquecedor = Enriquecedor(conexao)
         self.prompts = Prompts(raiz=config.prompts)
         self.prompts.precarregar()
+
+    # -- execução auditada -------------------------------------------------------------
+
+    def executar(
+        self,
+        *,
+        limite_eventos: int = 0,
+        limite_consolidar: int = 0,
+        consolidar_tudo: bool = False,
+    ) -> ResultadoWorker:
+        """Executa as trilhas pedidas e registra uma linha em ``analyser_execucao``.
+
+        A linha nasce e recebe commit antes do processamento. Por isso uma queda abrupta
+        não apaga a evidência da tentativa: ela fica ``em_andamento``. Os commits por
+        evento e por janela continuam os mesmos; a auditoria não decide retomada.
+        """
+        if limite_eventos < 0 or limite_consolidar < 0:
+            raise ValueError("os limites não podem ser negativos")
+        if limite_consolidar and consolidar_tudo:
+            raise ValueError("use limite_consolidar ou consolidar_tudo, não ambos")
+        if not limite_eventos and not limite_consolidar and not consolidar_tudo:
+            raise ValueError(
+                "informe limite_eventos, limite_consolidar e/ou consolidar_tudo"
+            )
+
+        capacidade_lote = limite_eventos or limite_consolidar
+        unidade_capacidade = (
+            "eventos"
+            if limite_eventos
+            else "todas_as_janelas_pendentes"
+            if consolidar_tudo
+            else "janelas"
+        )
+        limites_auditados: dict[str, int | bool] = {
+            "eventos": limite_eventos,
+            "consolidar": limite_consolidar,
+        }
+        if consolidar_tudo:
+            limites_auditados["consolidar_tudo"] = True
+        auditoria = AuditoriaExecucaoPostgres(self.conexao)
+        execucao_id, numero_execucao = auditoria.iniciar(
+            capacidade_lote=capacidade_lote,
+            modelo=self.modelo.nome,
+            dados={
+                "tipo_execucao": "worker",
+                "limites": limites_auditados,
+                "unidade_capacidade_lote": unidade_capacidade,
+            },
+        )
+        # A execução precisa sobreviver mesmo se o processo cair no primeiro resumo.
+        self.conexao.commit()
+
+        resultado = ResultadoWorker(execucao_id=execucao_id)
+        try:
+            if limite_eventos:
+                self._somar_resultado(
+                    resultado, self.processar_eventos(limite=limite_eventos)
+                )
+            if limite_consolidar:
+                self._somar_resultado(
+                    resultado, self.consolidar_janelas(limite=limite_consolidar)
+                )
+            elif consolidar_tudo:
+                self._somar_resultado(
+                    resultado, self.consolidar_janelas(limite=None)
+                )
+
+            status = "falhou" if resultado.erros else "concluida"
+            erro = "\n".join(resultado.erros) or None
+            auditoria.finalizar(
+                execucao_id,
+                status=status,
+                quantidade_eventos=resultado.eventos_processados,
+                quantidade_itens=resultado.itens_criados,
+                quantidade_resumos=resultado.resumos_gerados,
+                quantidade_panoramas=resultado.panoramas_gravados,
+                dados=self._dados_auditoria(
+                    numero_execucao,
+                    limite_eventos,
+                    limite_consolidar,
+                    consolidar_tudo,
+                    unidade_capacidade,
+                    resultado,
+                    status,
+                ),
+                erro=erro,
+            )
+            self.conexao.commit()
+            return resultado
+
+        except Exception as erro:  # noqa: BLE001 — a execução deve ficar observável
+            self.conexao.rollback()
+            mensagem = str(erro)
+            auditoria.finalizar(
+                execucao_id,
+                status="falhou",
+                quantidade_eventos=resultado.eventos_processados,
+                quantidade_itens=resultado.itens_criados,
+                quantidade_resumos=resultado.resumos_gerados,
+                quantidade_panoramas=resultado.panoramas_gravados,
+                dados=self._dados_auditoria(
+                    numero_execucao,
+                    limite_eventos,
+                    limite_consolidar,
+                    consolidar_tudo,
+                    unidade_capacidade,
+                    resultado,
+                    "falhou",
+                    erro_inesperado=mensagem,
+                ),
+                erro=mensagem,
+            )
+            self.conexao.commit()
+            raise
+
+    @staticmethod
+    def _somar_resultado(destino: ResultadoWorker, origem: ResultadoWorker) -> None:
+        """Acumula as duas trilhas em uma única auditoria de invocação."""
+        for campo in (
+            "eventos_processados",
+            "itens_criados",
+            "itens_ja_existentes",
+            "resumos_gerados",
+            "janelas_consolidadas",
+            "panoramas_gravados",
+        ):
+            setattr(destino, campo, getattr(destino, campo) + getattr(origem, campo))
+        destino.avisos.extend(origem.avisos)
+        destino.erros.extend(origem.erros)
+        destino.tokens.update(origem.tokens)
+
+    def _dados_auditoria(
+        self,
+        numero_execucao: int,
+        limite_eventos: int,
+        limite_consolidar: int,
+        consolidar_tudo: bool,
+        unidade_capacidade: str,
+        resultado: ResultadoWorker,
+        status: str,
+        *,
+        erro_inesperado: str | None = None,
+    ) -> dict[str, Any]:
+        """Detalhes que não cabem nas colunas resumidas da tabela de auditoria."""
+        limites: dict[str, int | bool] = {
+            "eventos": limite_eventos,
+            "consolidar": limite_consolidar,
+        }
+        if consolidar_tudo:
+            limites["consolidar_tudo"] = True
+
+        dados: dict[str, Any] = {
+            "tipo_execucao": "worker",
+            "execucao_id": resultado.execucao_id,
+            "numero_execucao": numero_execucao,
+            "status": status,
+            "modelo": self.modelo.nome,
+            "limites": limites,
+            "unidade_capacidade_lote": unidade_capacidade,
+            "resultado": {
+                "eventos_processados": resultado.eventos_processados,
+                "itens_criados": resultado.itens_criados,
+                "itens_ja_existentes": resultado.itens_ja_existentes,
+                "resumos_gerados": resultado.resumos_gerados,
+                "janelas_consolidadas": resultado.janelas_consolidadas,
+                "panoramas_gravados": resultado.panoramas_gravados,
+            },
+            "chamadas_por_tarefa": dict(self.modelo.chamadas_por_tarefa),
+            "chamadas_total": self.modelo.chamadas,
+            # Sem isto não existe média real de tokens por resumo ou por panorama, e o
+            # dimensionamento do lote continua apoiado em estimativa. `dict(...)` porque
+            # `Counter` não é serializável para JSONB como está.
+            "tokens": dict(resultado.tokens),
+            "avisos": resultado.avisos,
+            "erros": resultado.erros,
+        }
+        if erro_inesperado:
+            dados["erro_inesperado"] = erro_inesperado
+        return dados
 
     # -- trilha 1: eventos --------------------------------------------------------------
 
@@ -186,6 +376,8 @@ class Worker:
             resultado.erros.append(f"{item.item_id}: {erro}")
             return
 
+        resultado.tokens.update(saida.tokens or {})
+
         destino.gravar_resumo(
             RegistroResumo(
                 item_id=item.item_id,
@@ -226,15 +418,26 @@ class Worker:
         """
         with self.conexao.cursor(row_factory=dict_row) as cur:
             return cur.execute(
-                """SELECT DISTINCT entity_type, nr_titulo_eleitoral_candidato,
-                          nr_partido, ator_nome, janela_mes
+                """SELECT entity_type, nr_titulo_eleitoral_candidato, nr_partido,
+                          max(ator_nome) AS ator_nome, janela_mes
                      FROM analyser_item
                     WHERE status = 'resumido'
-                    ORDER BY janela_mes, entity_type"""
+                    GROUP BY entity_type, nr_titulo_eleitoral_candidato,
+                             nr_partido, janela_mes
+                    ORDER BY janela_mes, entity_type,
+                             coalesce(nr_titulo_eleitoral_candidato, nr_partido::text)"""
             ).fetchall()
 
-    def consolidar_janelas(self, limite: int = 20) -> ResultadoWorker:
+    def quantidade_janelas_pendentes(self) -> int:
+        """Conta identidades distintas de ator + mês ainda não consolidadas."""
+        return len(self._atores_com_janela_pendente())
+
+    def consolidar_janelas(self, limite: int | None = 20) -> ResultadoWorker:
         """Consolida as janelas pendentes, uma transação por janela.
+
+        ``limite=None`` processa uma fotografia de todas as janelas pendentes no momento
+        da consulta. Itens resumidos concorrentemente depois dessa fotografia continuam
+        pendentes e serão encontrados numa próxima execução.
 
         Reusa o `Analyser` inteiro: as etapas 3 a 6 já sabem agrupar por eixo, lotear,
         consolidar em dois níveis, normalizar contagens e verificar ids. A `Rodada` é
@@ -242,14 +445,23 @@ class Worker:
         não dela.
         """
         resultado = ResultadoWorker()
+        pendentes = self._atores_com_janela_pendente()
+        if limite is not None:
+            if limite < 0:
+                raise ValueError("o limite de janelas não pode ser negativo")
+            pendentes = pendentes[:limite]
 
-        for pendente in self._atores_com_janela_pendente()[:limite]:
+        for pendente in pendentes:
             ator_id = (
                 pendente["nr_titulo_eleitoral_candidato"]
                 if pendente["entity_type"] == "politico"
                 else str(pendente["nr_partido"])
             )
             janela = pendente["janela_mes"]
+            # Fora do `try` porque o `except` lê os tokens desta instância: se a falha
+            # acontecer antes da atribuição, `analyser` estaria indefinido e o handler
+            # levantaria NameError por cima do erro real, escondendo a causa.
+            analyser: Analyser | None = None
             try:
                 destino = ArmazenamentoPostgres(
                     self.conexao,
@@ -283,9 +495,16 @@ class Worker:
                 resultado.panoramas_gravados += len(parcial.panoramas)
                 resultado.avisos.extend(parcial.avisos)
                 resultado.erros.extend(parcial.erros)
+                resultado.tokens.update(analyser.tokens)
 
             except Exception as erro:  # noqa: BLE001
                 self.conexao.rollback()
+                # O consumo é contabilizado mesmo na falha, e de propósito: uma janela que
+                # estourou o contexto é exatamente aquela cujo tamanho de prompt precisa
+                # aparecer na auditoria. Descartar o número junto com o erro apagaria a
+                # evidência de por que ela falhou.
+                if analyser is not None:
+                    resultado.tokens.update(analyser.tokens)
                 resultado.erros.append(f"janela {ator_id}/{janela}: {erro}")
                 logger.exception("Falha ao consolidar %s/%s", ator_id, janela)
 

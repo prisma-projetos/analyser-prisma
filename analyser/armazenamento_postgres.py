@@ -62,6 +62,92 @@ class Ator:
         return int(self.ator_id) if self.entity_type == "partido" else None
 
 
+class AuditoriaExecucaoPostgres:
+    """Ciclo de vida auditável de uma invocação do worker.
+
+    A auditoria não participa da retomada: quem decide o que ainda falta são os estados da
+    inbox e dos itens. Ela existe para tornar a execução observável, inclusive quando o
+    processo termina de forma inesperada e a linha permanece ``em_andamento``.
+    """
+
+    def __init__(self, conexao: psycopg.Connection) -> None:
+        self.conexao = conexao
+
+    def iniciar(
+        self,
+        *,
+        capacidade_lote: int,
+        modelo: str,
+        dados: dict[str, Any],
+    ) -> tuple[int, int]:
+        """Cria uma execução visível antes do trabalho pesado.
+
+        O advisory lock (trava transacional leve, compartilhada somente por quem pede a
+        mesma chave) evita que dois workers calculem o mesmo ``numero_execucao``.
+        """
+        if capacidade_lote < 0:
+            raise ValueError("capacidade_lote não pode ser negativa")
+
+        self.conexao.execute(
+            "SELECT pg_advisory_xact_lock(hashtext('analyser_execucao_numero'))"
+        )
+        numero = self.conexao.execute(
+            "SELECT COALESCE(max(numero_execucao), 0) + 1 FROM analyser_execucao"
+        ).fetchone()[0]
+        linha = self.conexao.execute(
+            """INSERT INTO analyser_execucao (
+                   numero_execucao, status, capacidade_lote, modelo, auditoria_json
+               ) VALUES (%s, 'em_andamento', %s, %s, %s)
+               RETURNING execucao_id""",
+            (numero, capacidade_lote, modelo, Jsonb(dados)),
+        ).fetchone()
+        return int(linha[0]), int(numero)
+
+    def finalizar(
+        self,
+        execucao_id: int,
+        *,
+        status: str,
+        quantidade_eventos: int,
+        quantidade_itens: int,
+        quantidade_resumos: int,
+        quantidade_panoramas: int,
+        dados: dict[str, Any],
+        erro: str | None = None,
+    ) -> None:
+        """Fecha uma execução iniciada, preservando as contagens reais."""
+        if status not in {"concluida", "falhou"}:
+            raise ValueError(f"status final inválido: {status}")
+
+        linha = self.conexao.execute(
+            """UPDATE analyser_execucao
+                  SET status = %s,
+                      quantidade_eventos = %s,
+                      quantidade_itens = %s,
+                      quantidade_resumos = %s,
+                      quantidade_panoramas = %s,
+                      finalizado_em = now(),
+                      auditoria_json = %s,
+                      erro = %s
+                WHERE execucao_id = %s AND status = 'em_andamento'
+                RETURNING execucao_id""",
+            (
+                status,
+                quantidade_eventos,
+                quantidade_itens,
+                quantidade_resumos,
+                quantidade_panoramas,
+                Jsonb(dados),
+                erro[:2000] if erro else None,
+                execucao_id,
+            ),
+        ).fetchone()
+        if linha is None:
+            raise RuntimeError(
+                f"execução {execucao_id} não está em andamento ou não existe"
+            )
+
+
 class ArmazenamentoPostgres:
     """Persistência nas tabelas `analyser_*`.
 

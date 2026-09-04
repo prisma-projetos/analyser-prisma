@@ -6,11 +6,16 @@ Regra 7: nada que venha do modelo é usado antes de passar por aqui. Texto solto
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from analyser.config import Eixo, TipoAtor
+from analyser.config import (
+    MAX_PONTOS_POR_LOTE,
+    MAX_TEMAS_POR_LOTE,
+    Eixo,
+    TipoAtor,
+)
 
 # --------------------------------------------------------------------------------------
 # Entrada — o que o Classifier entrega ao Analyser
@@ -164,12 +169,31 @@ class TemaContado(BaseModel):
 
 
 class ConsolidacaoParcial(BaseModel):
-    """Consolidação de um lote de resumos. Insumo do segundo nível do reduce."""
+    """Consolidação de um lote de resumos. Insumo do segundo nível do reduce.
+
+    Os tetos de `temas` e `pontos` são o que faz o reduce REDUZIR. Sem eles as duas
+    listas crescem proporcionais ao lote, e a saída deste nível é exatamente o prompt do
+    nível seguinte: um primeiro nível que não comprime só adia o estouro para a
+    `consolidacao_final`. Medido em agosto de 2026, antes dos tetos: 31 resumos do Zema
+    devolveram 78 temas e 9694 tokens: 313 tokens de saída por resumo de entrada.
+
+    Os tetos são ABSOLUTOS, não por item — é essa independência do tamanho da janela que
+    mantém o prompt do nível 2 limitado por mais que a janela cresça.
+
+    Eles precisam estar no schema, e não no texto do prompt, porque o prompt já pedia
+    "prefira poucos temas bem sustentados" e recebeu 78. Com `SAIDA_ESTRUTURADA=1` estes
+    campos viram `maxItems` no JSON Schema, o servidor converte o schema em gramática, e
+    o decodificador fica obrigado a fechar a lista. Vira garantia mecânica.
+
+    `fontes` continua sem teto de propósito: é a lista de ids que marca cada item como
+    `consolidado`. Limitá-la produziria exatamente o dano que este módulo passou a
+    detectar — item que participou da consolidação e ficou órfão em `resumido`.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    temas: list[TemaContado]
-    pontos: list[str]
+    temas: Annotated[list[TemaContado], Field(max_length=MAX_TEMAS_POR_LOTE)]
+    pontos: Annotated[list[str], Field(max_length=MAX_PONTOS_POR_LOTE)]
     fontes: Annotated[list[str], Field(min_length=1)]
 
 
@@ -192,19 +216,62 @@ class Panorama(BaseModel):
     ator_id: str
     janela: str
     eixo: Eixo
-    total_itens: Annotated[int, Field(ge=0)]
     # Obrigatório de propósito: os TRÊS fragmentos de formato pedem temas, e nenhum
     # dispensa. Enquanto este campo teve default, a decodificação restrita o tratou como
     # dispensável e o formato compacto passou a devolver panorama sem tema nenhum. Os
     # temas seguem no contrato mesmo que a tela não os exiba de primeira.
     temas: Annotated[list[TemaContado], Field(min_length=1)]
-    fontes: Annotated[list[str], Field(min_length=1)]
     # O conteúdo do panorama, nos três eixos: um parágrafo consolidado com os ids entre
     # parênteses. Obrigatório pelo mesmo motivo de `temas` — um campo com default é
     # tratado como dispensável pela decodificação restrita, e aqui o dispensável seria
     # justamente o texto que o cidadão lê. Substituiu a lista `fatos_mais_citados`, que
     # entregava os mesmos fatos soltos.
     texto: Annotated[str, Field(min_length=1)]
+
+    # -- preenchidos pelo Python, NUNCA pelo modelo -------------------------------------
+    #
+    # Estes dois campos saíram do que se pede ao modelo em 3 de setembro de 2026. O
+    # motivo é que o campo tinha dois donos com definições incompatíveis: o fragmento de
+    # formato pedia "todos os ids USADOS no panorama", e `gravar_panorama` usava a mesma
+    # lista para decidir quais itens viram `consolidado`.
+    #
+    # As duas leituras divergem exatamente na medida em que o modelo faz bem o trabalho
+    # dele: quanto melhor ele consolida, menos ids distintos ele "usa", e mais itens
+    # ficam órfãos em `resumido`. Medido: uma janela de 88 matérias com teto de 12 temas
+    # devolveu 24 ids — os outros 64 itens teriam ficado pendentes para sempre.
+    #
+    # A divergência ficou escondida enquanto as janelas eram pequenas, porque o modelo
+    # produzia quase um tema por matéria e "ids usados" era acidentalmente igual a "todos
+    # os ids". Não era um invariante: era coincidência de escala.
+    #
+    # Isto é contagem e escrituração, não interpretação — e a regra do módulo é que o
+    # modelo escreve texto enquanto o Python controla agrupamento, contagem e estado. O
+    # conjunto de entrada da consolidação é conhecido exatamente em Python; pedi-lo de
+    # volta ao modelo gastava ~1200 tokens de saída por chamada e ainda abria espaço para
+    # alucinação (um id inexistente, `art_28__partido_13`, apareceu numa resposta real).
+    #
+    # `temas[].fontes` continua sendo do modelo: ali o id É interpretação — diz qual
+    # matéria sustenta AQUELE tema, e só quem leu o resumo sabe responder.
+    #
+    # Os defaults existem porque a resposta do modelo não traz mais estes campos;
+    # `Analyser._etapa_4_e_5` os preenche antes de qualquer verificação ou gravação.
+    total_itens: Annotated[int, Field(ge=0)] = 0
+    fontes: list[str] = Field(default_factory=list)
+
+    @classmethod
+    def esquema_do_modelo(cls) -> dict[str, Any]:
+        """JSON Schema do que se PEDE ao modelo — sem os campos que o Python preenche.
+
+        Separado de `model_json_schema()`, que descreve o objeto persistido inteiro.
+        Mandar o schema completo faria a decodificação restrita exigir `fontes` e
+        `total_itens` do modelo, que é justamente o que se está tirando dele.
+        """
+        esquema = cls.model_json_schema()
+        for campo in ("fontes", "total_itens"):
+            esquema["properties"].pop(campo, None)
+            if campo in esquema.get("required", []):
+                esquema["required"].remove(campo)
+        return esquema
 
 
 class RegistroPanorama(BaseModel):

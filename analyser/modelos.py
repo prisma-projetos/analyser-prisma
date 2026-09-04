@@ -20,7 +20,16 @@ from typing import Any, Generic, Protocol, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from analyser.config import MAX_TENTATIVAS, MAX_TOKENS_POR_TAREFA, TEMPERATURA
+from analyser.config import (
+    CHARS_POR_TOKEN,
+    CHARS_POR_TOKEN_MINIMO,
+    CONTEXTO_TOKENS,
+    MAX_PONTOS_POR_LOTE,
+    MAX_TEMAS_POR_LOTE,
+    MAX_TENTATIVAS,
+    MAX_TOKENS_POR_TAREFA,
+    TEMPERATURA,
+)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -40,6 +49,19 @@ class ErroDeValidacao(RuntimeError):
     """
 
 
+class ErroDeCobertura(ErroDeValidacao):
+    """O panorama não cita todas as matérias que consolidou.
+
+    Subclasse de `ErroDeValidacao` porque tem a mesma consequência operacional: é
+    problema DAQUELE eixo, o pipeline registra e segue para o próximo, e a janela
+    continua pendente com os resumos intactos. Nada é gravado pela metade.
+
+    Não é um detalhe de contagem: `fontes` é a lista que marca cada item como
+    `consolidado`. Um id ausente é um item que participou da consolidação, não entrou no
+    resultado e fica órfão em `resumido` — invisível como perda e eterno como pendência.
+    """
+
+
 class ErroDeResposta(RuntimeError):
     """A resposta veio inutilizável por CONFIGURAÇÃO, não por prompt ruim.
 
@@ -49,6 +71,23 @@ class ErroDeResposta(RuntimeError):
     cortado porque o teto de tokens é curto. Repetir não conserta nenhuma das duas, só
     gasta chamada, então o pipeline deixa esta subir e a execução para na primeira
     ocorrência.
+    """
+
+
+class ErroDePrompt(ErroDeResposta):
+    """O prompt não coube no contexto do servidor — antes ou depois de enviado.
+
+    Subclasse de `ErroDeResposta` porque compartilha a consequência: é problema de
+    DIMENSIONAMENTO, vale para toda a execução, e repetir a chamada não conserta.
+
+    Existe separada porque descreve a única falha deste módulo que o servidor não
+    sinaliza. Quando o prompt passa do contexto, o Ollama não recusa: corta pela cabeça,
+    reporta o tamanho já cortado e responde `finish_reason="stop"`. O JSON é válido, a
+    execução segue, e o que fica gravado é um panorama sobre parte da entrada. Em agosto
+    de 2026 isso produziu um panorama citando 47 das 94 matérias sem um único erro em
+    lugar nenhum — e os 47 itens não citados ficaram órfãos em `resumido`.
+
+    Uma falha que não se anuncia precisa de um nome próprio para poder ser procurada.
     """
 
 
@@ -216,11 +255,19 @@ class ModeloFake:
                 if r["fonte_id"] not in por_tema[tema]:
                     por_tema[tema].append(r["fonte_id"])
 
+        # O fake respeita os MESMOS tetos que a gramática impõe ao modelo real. Se ele
+        # pudesse devolver listas sem limite, a suíte passaria a validar um contrato que
+        # a produção não tem — e o teto existe justamente porque o modelo real, sem ele,
+        # devolveu 78 temas para 31 resumos.
+        #
+        # O corte é pelos temas mais sustentados porque a ordenação já é por número de
+        # fontes decrescente: sobra o que mais matérias corroboram, que é o que o prompt
+        # pede. `fontes` continua completa — é ela que marca item como `consolidado`.
         temas = [
             {"tema": tema, "ocorrencias": len(fontes), "fontes": fontes}
             for tema, fontes in sorted(por_tema.items(), key=lambda kv: (-len(kv[1]), kv[0]))
-        ]
-        pontos = [f"{r['resumo']} ({r['fonte_id']})" for r in resumos]
+        ][:MAX_TEMAS_POR_LOTE]
+        pontos = [f"{r['resumo']} ({r['fonte_id']})" for r in resumos][:MAX_PONTOS_POR_LOTE]
         return {
             "temas": temas,
             "pontos": pontos,
@@ -431,6 +478,21 @@ class ModeloAPI:
         self.chamadas += 1
         self.chamadas_por_tarefa[tarefa] += 1
 
+        # Verificação preventiva. O servidor NÃO recusa um prompt grande demais: ele o
+        # trunca pela cabeça, em silêncio, e responde como se nada tivesse acontecido.
+        # Conferir a conta aqui custa uma divisão; descobrir depois custou 2h08 e um
+        # panorama corrompido em agosto de 2026.
+        estimado = int(len(prompt) / CHARS_POR_TOKEN)
+        if estimado >= CONTEXTO_TOKENS:
+            raise ErroDePrompt(
+                f"O prompt de '{tarefa}' tem ~{estimado} tokens estimados e o contexto do "
+                f"servidor é {CONTEXTO_TOKENS}. Enviar assim não daria erro: o servidor "
+                f"cortaria o prompt pela cabeça — apagando as regras e preservando os "
+                f"dados — e devolveria um JSON válido sobre metade da entrada. Reduza o "
+                f"lote (LOTE_PADRAO) ou aumente CONTEXTO_TOKENS junto com "
+                f"OLLAMA_CONTEXT_LENGTH no compose.yml."
+            )
+
         corpo_envio: dict[str, Any] = {
             "model": self.nome,
             "messages": [{"role": "user", "content": prompt}],
@@ -480,12 +542,43 @@ class ModeloAPI:
                 "resposta; desligue isso pelo EXTRA_BODY no .env. Repetir a chamada "
                 "não conserta — só consome cota."
             )
+        # Detector de truncamento silencioso — a defesa que faltava.
+        #
+        # O servidor reporta em `prompt_tokens` o tamanho do prompt QUE ELE USOU, não do
+        # que foi enviado. Se ele cortou, o número vem menor e nada mais denuncia: o
+        # `finish_reason` é "stop", o JSON é válido (a gramática garante forma, não
+        # completude) e a resposta fala de metade dos dados sem dizer isso.
+        #
+        # Comparar contra um piso frouxo do tamanho real é o suficiente, porque o corte
+        # do Ollama é sempre para metade do contexto — um efeito grande demais para se
+        # confundir com erro de estimativa.
+        recebidos = uso.get("prompt_tokens") or 0
+        piso = int(len(prompt) / CHARS_POR_TOKEN_MINIMO)
+        if recebidos and recebidos < piso:
+            raise ErroDePrompt(
+                f"O prompt de '{tarefa}' foi TRUNCADO pelo servidor: enviamos um texto de "
+                f"{len(prompt)} caracteres (no mínimo {piso} tokens) e o servidor reporta "
+                f"ter processado {recebidos}. O corte é pela cabeça, onde ficam as regras "
+                f"e a tarefa — o que sobrevive são os dados e o formato da resposta. A "
+                f"resposta que viria daqui seria um JSON válido sobre parte da entrada, "
+                f"sem sinal de erro. Reduza o lote ou aumente o contexto do servidor."
+            )
         if motivo == "length":
             teto = MAX_TOKENS_POR_TAREFA.get(tarefa, 2000)
+            gerados = uso.get("completion_tokens") or 0
+            espaco = CONTEXTO_TOKENS - recebidos
+            culpado = (
+                f"o teto de {teto} tokens da tarefa"
+                if gerados >= teto
+                else f"o contexto do servidor ({CONTEXTO_TOKENS}), que depois de "
+                f"{recebidos} tokens de prompt deixou só {espaco} para a resposta"
+            )
             raise ErroDeResposta(
-                f"A resposta de '{tarefa}' foi cortada no teto de {teto} tokens, então "
-                f"o JSON chegou incompleto. Aumente MAX_TOKENS_POR_TAREFA['{tarefa}'] "
-                "em config.py."
+                f"A resposta de '{tarefa}' foi cortada e o JSON chegou incompleto. "
+                f"Prompt: {recebidos} tokens. Gerados: {gerados}. Teto da tarefa: {teto}. "
+                f"Contexto: {CONTEXTO_TOKENS}. Quem mordeu foi {culpado}. "
+                "Se o limite foi o contexto, aumentar MAX_TOKENS_POR_TAREFA não muda nada "
+                "— é preciso reduzir o lote ou aumentar o contexto."
             )
 
         return RespostaBruta(
@@ -543,15 +636,22 @@ def gerar_validado(
     schema: type[T],
     contexto: dict[str, Any],
     tarefa: str,
+    esquema_pedido: dict[str, Any] | None = None,
 ) -> ResultadoValidado[T]:
     """Gera, valida com Pydantic e, se falhar, tenta reparar UMA vez.
 
     Regra 7: texto solto não passa. Depois da tentativa de reparo, o erro é registrado —
     nunca contornado.
+
+    `esquema_pedido` separa o que se PEDE do que se VALIDA. Elas coincidem na maioria das
+    tarefas, e por isso o padrão é derivar uma da outra. Divergem quando parte do objeto
+    persistido não vem do modelo: o `Panorama` guarda `fontes` e `total_itens`, mas quem
+    os preenche é o Python, e mandar o schema completo faria a decodificação restrita
+    voltar a exigi-los de quem não deve respondê-los.
     """
     # O mesmo schema que valida a resposta pode restringir a geração dela. Quem sabe
     # aproveitar, aproveita; quem não sabe, ignora — a validação abaixo é a mesma.
-    esquema = schema.model_json_schema()
+    esquema = esquema_pedido if esquema_pedido is not None else schema.model_json_schema()
 
     ultimo_erro = ""
     for tentativa in range(1, MAX_TENTATIVAS + 1):

@@ -21,7 +21,12 @@ from analyser.armazenamento import (
     carimbo_execucao,
 )
 from analyser.config import EIXOS, FORMATO_POR_EIXO, Config, Eixo
-from analyser.modelos import ErroDeValidacao, Modelo, gerar_validado
+from analyser.modelos import (
+    ErroDeCobertura,
+    ErroDeValidacao,
+    Modelo,
+    gerar_validado,
+)
 from analyser.prompts import Prompts
 from analyser.schemas import (
     AtorPolitico,
@@ -345,6 +350,7 @@ class Analyser:
             self.modelo,
             prompt=prompt_final.texto,
             schema=Panorama,
+            esquema_pedido=Panorama.esquema_do_modelo(),
             tarefa="consolidacao_final",
             contexto={
                 "parciais": carga_parciais,
@@ -356,11 +362,20 @@ class Analyser:
         )
         self._somar_tokens(final.tokens)
 
+        # Escrituração antes de qualquer verificação ou gravação: o conjunto de entrada
+        # desta consolidação é conhecido aqui, exatamente, e é ele que define tanto o que
+        # o panorama cobre quanto quais itens viram `consolidado`. O modelo não é mais
+        # perguntado sobre isso — ver `Panorama.fontes`.
+        final.dados.fontes = [r.fonte_id for r in resumos]
+        final.dados.total_itens = len(final.dados.fontes)
+
         self._atribuir_ids_de_tema(final.dados)
         avisos = self._normalizar_contagens(final.dados)
         avisos += self._etapa_6_verificar(final.dados, resumos)
         for aviso in avisos:
             resultado.avisos.append(f"[{janela}/{eixo}] {aviso}")
+
+        self._verificar_cobertura(final.dados, resumos, janela=janela, eixo=eixo)
 
         registro = RegistroPanorama(
             ator_id=rodada.ator.id,
@@ -495,6 +510,40 @@ class Analyser:
             )
         return avisos
 
+    @staticmethod
+    def _verificar_cobertura(
+        panorama: Panorama, resumos: list[RegistroResumo], *, janela: str, eixo: Eixo
+    ) -> None:
+        """Um panorama que não cita toda a sua entrada NÃO pode ser gravado.
+
+        Extraído como método próprio — em vez de inline em `_etapa_4_e_5` — para
+        continuar testável por si mesmo depois de 3 de setembro de 2026, quando `fontes`
+        passou a ser preenchida pelo Python a partir do próprio `resumos`, e não mais
+        pedida ao modelo (ver `Panorama.fontes`). Essa mudança tornou esta condição
+        impossível de falhar pelo caminho normal: `_etapa_4_e_5` atribui
+        `panorama.fontes = [r.fonte_id for r in resumos]` antes de chamar isto, então
+        `nao_citados` é sempre vazio por construção.
+
+        A checagem continua existindo como arame de tropeço, não decoração: protege
+        contra uma mudança futura que devolva o campo ao modelo, ou que filtre a lista
+        entre a atribuição e a gravação. `gravar_panorama` marca `consolidado` exatamente
+        os ids de `panorama.fontes` — um item fora dessa lista fica órfão em `resumido`,
+        uma perda invisível e uma pendência eterna.
+
+        Foi assim que a janela de agosto de 2026 do Lula gravou 47 das 94 matérias com
+        status de sucesso, quando isto ainda era apenas um aviso registrado e ignorado.
+        Falhar é a alternativa segura: nada gravado, resumos intactos, erro na auditoria.
+        """
+        nao_citados = {r.fonte_id for r in resumos} - set(panorama.fontes)
+        if nao_citados:
+            raise ErroDeCobertura(
+                f"O panorama de {janela}/{eixo} cita {len(panorama.fontes)} das "
+                f"{len(resumos)} matérias da entrada e deixaria {len(nao_citados)} itens "
+                f"órfãos em 'resumido'. Não foi gravado. Ids ausentes: "
+                f"{', '.join(sorted(nao_citados)[:10])}"
+                f"{' ...' if len(nao_citados) > 10 else ''}"
+            )
+
     # -- contagens e auditoria ---------------------------------------------------------
 
     def _contabilizar(self, rodada: Rodada, resultado: ResultadoExecucao) -> None:
@@ -512,6 +561,18 @@ class Analyser:
     def _somar_tokens(self, tokens: dict[str, int] | None) -> None:
         if tokens:
             self._tokens.update(tokens)
+
+    @property
+    def tokens(self) -> dict[str, int]:
+        """Tokens de prompt e de resposta acumulados por esta instância.
+
+        Público porque o `Worker` chama `_recalcular_janela` diretamente, sem passar por
+        `executar()`, e portanto nunca chega em `_gravar_auditoria`. Sem este acessor o
+        consumo de uma consolidação do worker não era registrado em lugar nenhum — foi
+        por isso que a execução de agosto de 2026 não soube dizer quantos tokens gastou,
+        justamente na execução em que o tamanho dos prompts era o problema.
+        """
+        return dict(self._tokens)
 
     def _gravar_auditoria(self, resultado: ResultadoExecucao) -> None:
         """Grava o registro de auditoria da execução."""
