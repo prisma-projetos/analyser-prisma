@@ -2,7 +2,7 @@ Preencha os campos abaixo. Este fragmento define a forma da resposta deste recor
 
 - temas: de {MIN_TEMAS} a {MAX_TEMAS} entradas, ordenadas da maior para a menor contagem. Cada entrada tem o
   nome do tema (1 a 4 palavras), o número de matérias distintas que o sustentam e a lista
-  desses ids. É aqui que mora a rastreabilidade: os ids ficam nos temas e em `fontes`.
+  desses ids. É aqui que mora a rastreabilidade: os ids ficam nas `fontes` de cada tema.
 - texto: UM parágrafo único e corrido, de 3 a 6 frases, reunindo os elogios, as entregas
   e os reconhecimentos que a cobertura deste recorte registra.
 
@@ -16,7 +16,7 @@ Preencha os campos abaixo. Este fragmento define a forma da resposta deste recor
 
   NÃO escreva ids dentro do parágrafo. Nada de "(art_408)" nem de qualquer outro código
   entre parênteses. O texto é lido por um cidadão e precisa correr limpo; os ids ficam em
-  `temas` e em `fontes`.
+  `fontes` de cada tema.
 
   Não é uma lista disfarçada de parágrafo: as frases se encadeiam e são lidas de uma vez.
   Escreva o acontecimento, não o assunto dele. Um parágrafo que apenas enumera nomes de
@@ -27,8 +27,6 @@ Preencha os campos abaixo. Este fragmento define a forma da resposta deste recor
 
   Se as matérias deste recorte não trouxerem elogio nenhum, diga isso e relate o que elas
   de fato registram. Não fabrique elogio que a cobertura não fez.
-- fontes: todos os ids usados no panorama, sem repetição.
-- total_itens: o número de matérias distintas consolidadas.
 
 Objeto JSON esperado:
-{"ator_id": "{ATOR_ID}", "janela": "{JANELA}", "eixo": "{EIXO}", "total_itens": <inteiro>, "temas": [{"tema": "<1 a 4 palavras>", "ocorrencias": <inteiro>, "fontes": ["<id>"]}], "fontes": ["<id>"], "texto": "<um parágrafo de 3 a 6 frases, sem ids, abrindo pelo que a cobertura destaca>"}
+{"ator_id": "{ATOR_ID}", "janela": "{JANELA}", "eixo": "{EIXO}", "temas": [{"tema": "<1 a 4 palavras>", "ocorrencias": <inteiro>, "fontes": ["<id>"]}], "texto": "<um parágrafo de 3 a 6 frases, sem ids, abrindo pelo que a cobertura destaca>"}

@@ -15,9 +15,9 @@ REGRAS DE FIDELIDADE
 
 RASTREABILIDADE
 - Toda afirmação do panorama precisa ser sustentada por uma matéria recebida nas parciais.
-- Os ids ficam nos campos próprios — as `fontes` de cada tema e as `fontes` do panorama —,
-  nunca dentro do parágrafo. O parágrafo é lido por um cidadão e corre sem códigos; é pelos
-  temas e pelas fontes que se chega de volta às matérias.
+- Os ids ficam no campo próprio — as `fontes` de cada tema —, nunca dentro do parágrafo.
+  O parágrafo é lido por um cidadão e corre sem códigos; é pelos temas e pelas fontes
+  deles que se chega de volta às matérias.
 - Um id só pode ser listado se aparece nas parciais recebidas. Não invente ids.
 - A contagem declarada em cada tema é o número de matérias distintas que o sustentam.
 
@@ -26,8 +26,6 @@ Todo número deste panorama é o tamanho de uma lista que você mesmo escreveu. 
 lista primeiro, depois conte os itens dela.
 
 - `ocorrencias` de um tema é quantos ids há na lista `fontes` daquele tema.
-- `total_itens` é quantos ids há na lista `fontes` do panorama — matérias distintas, não
-  temas, não fatos, não parciais recebidas.
 - Não some, não estime, não arredonde. Se a lista tem dois ids, o número é dois.
 
 TEMAS
@@ -62,7 +60,7 @@ isso. Nesse caso, ESCOLHA — não comprima.
 
 - Prefira os temas sustentados por mais matérias. Depois, os mais específicos.
 - Descarte o resto. Uma matéria pode não aparecer em tema nenhum, e isso é aceitável:
-  ela continua contada em `total_itens` e citada em `fontes`, e o texto ou os fatos
+  a cobertura da janela é registrada fora da sua resposta, e o texto ou os fatos
   falam dela. A lista de temas mostra no que a cobertura converge, não um índice de
   tudo o que foi publicado.
 - Nunca funda assuntos distintos só para caber. Deixar um assunto de fora é honesto;

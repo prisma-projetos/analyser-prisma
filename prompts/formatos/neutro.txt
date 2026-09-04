@@ -2,7 +2,7 @@ Preencha os campos abaixo. Este fragmento define a forma da resposta deste recor
 
 - temas: de {MIN_TEMAS} a {MAX_TEMAS} entradas, ordenadas da maior para a menor contagem. Cada entrada tem o
   nome do tema (1 a 4 palavras), o número de matérias distintas que o sustentam e a lista
-  desses ids. É aqui que mora a rastreabilidade: os ids ficam nos temas e em `fontes`.
+  desses ids. É aqui que mora a rastreabilidade: os ids ficam nas `fontes` de cada tema.
 - texto: UM parágrafo único e corrido, de 3 a 6 frases, reunindo os fatos que a cobertura
   deste recorte registra sem tomar partido — agenda, trâmites, dados, números de pesquisa,
   declarações de terceiros.
@@ -19,15 +19,18 @@ Preencha os campos abaixo. Este fragmento define a forma da resposta deste recor
 
   NÃO escreva ids dentro do parágrafo. Nada de "(art_408)" nem de qualquer outro código
   entre parênteses. O texto é lido por um cidadão e precisa correr limpo; os ids ficam em
-  `temas` e em `fontes`.
+  `fontes` de cada tema.
 
   Não é uma lista disfarçada de parágrafo: as frases se encadeiam e são lidas de uma vez.
   Escreva o acontecimento, não o assunto dele. Um parágrafo que apenas enumera nomes de
   temas — "as matérias tratam de X, Y e Z" — não informa nada a quem não leu as matérias.
   Descreva o que a cobertura relata, nunca o que ela sugere. Sem adjetivo sobre o alvo.
   Se dois veículos cobriram o mesmo acontecimento, ele é uma afirmação só, não duas.
-- fontes: todos os ids usados no panorama, sem repetição.
-- total_itens: o número de matérias distintas consolidadas.
+
+  Se as matérias deste recorte trouxerem elogio ou crítica, registre a manifestação
+  atribuída a quem a fez — "o relator classificou a medida como", "a entidade apontou" —
+  e nunca como avaliação do próprio panorama. Também não apague uma divergência que a
+  cobertura registrou: neutralidade é relatar os dois lados, não omitir que houve dois.
 
 Objeto JSON esperado:
-{"ator_id": "{ATOR_ID}", "janela": "{JANELA}", "eixo": "{EIXO}", "total_itens": <inteiro>, "temas": [{"tema": "<1 a 4 palavras>", "ocorrencias": <inteiro>, "fontes": ["<id>"]}], "fontes": ["<id>"], "texto": "<um parágrafo de 3 a 6 frases, sem ids, abrindo pelo registro factual>"}
+{"ator_id": "{ATOR_ID}", "janela": "{JANELA}", "eixo": "{EIXO}", "temas": [{"tema": "<1 a 4 palavras>", "ocorrencias": <inteiro>, "fontes": ["<id>"]}], "texto": "<um parágrafo de 3 a 6 frases, sem ids, abrindo pelo registro factual>"}

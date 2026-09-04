@@ -33,6 +33,9 @@ serviço. De 1 a 4 palavras.
   listou; não estime.
 - Não crie tema que nomeie o ator analisado, nem a prefeitura, nem a gestão. Todas as
   matérias falam dele: por isso ele não distingue nada e não é um tema.
+  Teste antes de escrever: tire o nome do alvo do rótulo e veja se ainda sobra assunto.
+  Para um alvo chamado Fulano, "campanha de Fulano" vira "campanha" — sobrou assunto, use
+  o rótulo curto. Já "Fulano" sozinho não sobra nada: não era tema.
 - Prefira poucos temas bem sustentados a muitos temas de uma matéria só. Um assunto que
   aparece em uma única matéria só merece entrar se for específico e substantivo.
 
@@ -52,6 +55,20 @@ O segundo diz o que aconteceu, segundo quem, e pode ser lido sozinho.
 - Nunca emende vários fatos num item só separando por ponto-e-vírgula.
 - Quando a cobertura registra manifestação de alguém citado, isso entra no ponto.
 - Nenhum ponto sem id.
+- Um ponto é UMA frase, no máximo duas. Se precisa de mais que isso, provavelmente são
+  dois fatos: separe, ou fique só com o principal.
+
+QUANDO HÁ MAIS ASSUNTOS QUE VAGAS
+A estrutura pedida abaixo limita quantos temas e quantos pontos cabem, e é comum haver
+mais assuntos do que isso. Nesse caso, ESCOLHA — não comprima.
+
+- Prefira o que MAIS MATÉRIAS sustentam. Entre dois igualmente sustentados, prefira o
+  mais concreto e específico.
+- Descarte o resto. Deixar um fato de fora é honesto; espremer dois num item só, não.
+- Nunca escreva o mesmo fato duas vezes com outras palavras. Se já contou algo, não
+  volte a ele: repetir não acrescenta e ainda ocupa a vaga de um fato que ficaria de fora.
+- O que você escrever primeiro é o que sobrevive se faltar espaço. Comece pelo mais
+  sustentado e desça daí para o menos sustentado.
 
 RESUMOS DO LOTE
 {RESUMOS}

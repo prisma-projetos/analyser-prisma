@@ -20,12 +20,26 @@ services:
       - ollama-models:/root/.ollama
     environment:
       # Obrigatório, não ajuste fino. O padrão do Ollama é 4096, e ele TRUNCA prompts
-      # maiores pela cabeça, sem avisar. Com 100 notícias num lote, o prompt do
-      # consolidacao_final chega a ~10.500 tokens — e como o prompt põe as regras no
-      # começo e os dados no fim, truncar pela cabeça apaga exatamente as regras de
-      # fidelidade e o fragmento de formato. A resposta ainda passaria na validação,
-      # porque todo campo específico de formato é opcional no schema Panorama.
-      OLLAMA_CONTEXT_LENGTH: "16384"
+      # maiores pela cabeça, sem avisar. Como o prompt põe as regras no começo e os dados
+      # no fim, truncar pela cabeça apaga exatamente as regras de fidelidade e o fragmento
+      # de formato. A resposta ainda passaria na validação, porque todo campo específico
+      # de formato é opcional no schema Panorama.
+      #
+      # Era 16384 até 3 de setembro de 2026, dimensionado contra uma estimativa de ~10.500
+      # tokens para o prompt do consolidacao_final. A estimativa era da etapa errada: quem
+      # manda é o consolidacao_LOTE, medido em 872 + 155 por resumo — 16.372 tokens com
+      # 100 notícias, o contexto inteiro, sem sobrar nada para a resposta. O aviso acima
+      # descrevia com precisão um dano que já estava acontecendo há duas execuções.
+      #
+      # Medido nesta máquina (RTX 5050 Laptop, 8 GB) ao dobrar para 32768: o modelo é
+      # híbrido SSM + atenção (`full_attention_interval=4` — só 8 das 32 camadas usam
+      # atenção), então o KV cache custa +0,64 GiB, não os ~2,3 GiB de um transformer
+      # denso. O que muda é a residência: 0,98 GiB na CPU em 16384, 1,61 GiB em 32768.
+      # Custa velocidade por chamada e compra o lote de 100 de volta — menos chamadas.
+      #
+      # Precisa casar com CONTEXTO_TOKENS em analyser/config.py, que dimensiona o lote.
+      # Se este valor for MENOR que o de lá, o lote calculado estoura aqui.
+      OLLAMA_CONTEXT_LENGTH: "32768"
       # Mantém o modelo carregado entre chamadas. Sem isto o Ollama descarrega após
       # 5 minutos ociosos, e as 123 chamadas de um lote pagariam recargas no meio.
       OLLAMA_KEEP_ALIVE: "30m"

@@ -306,7 +306,7 @@ Há três limites diferentes, que não devem ser confundidos:
 | Limite | Configuração atual | O que limita |
 |---|---:|---|
 | Contexto | `OLLAMA_CONTEXT_LENGTH=16384` em `compose.yml` | O total de tokens que o modelo mantém disponível para uma requisição: prompt, dados de entrada e resposta precisam caber nesse espaço. |
-| Resposta por tarefa | `3000` (`resumo_item`), `6000` (`consolidacao_lote`) e `8000` (`consolidacao_final`) em `MAX_TOKENS_POR_TAREFA` | O teto enviado pelo Analyser em `max_tokens` para a geração de cada chamada. É um máximo, não uma quantidade que o modelo necessariamente usará. |
+| Resposta por tarefa | `3000` (`resumo_item`), `14000` (`consolidacao_lote`) e `13000` (`consolidacao_final`) em `MAX_TOKENS_POR_TAREFA` | O teto enviado pelo Analyser em `max_tokens` para a geração de cada chamada. É um máximo, não uma quantidade que o modelo necessariamente usará. |
 | Tempo por chamada HTTP | `TIMEOUT_SEGUNDOS=900` no `.env` | Até 15 minutos para uma chamada ao servidor de modelo responder. Não é o tempo máximo da execução inteira. |
 
 Uma execução do pipeline pode ultrapassar 15 minutos, porque as chamadas ao modelo são sequenciais: cada resumo novo, cada consolidação de lote e cada consolidação final tem seu próprio timeout. O campo `OLLAMA_KEEP_ALIVE=30m` também **não** é um timeout; ele apenas mantém o modelo carregado na memória por até 30 minutos após o uso, reduzindo o custo de carregá-lo novamente.
@@ -627,7 +627,8 @@ testes/
            nao; item novo? -----------> marca janela como suja
             v
   [3] Para cada janela suja:
-        agrupa TODOS os resumos da janela por rotulo definitivo
+        agrupa TODOS os resumos da janela (tipo do ator, ator, mês)
+        por rotulo definitivo
         (Python puro, sem modelo)
             |
             v

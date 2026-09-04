@@ -3,7 +3,9 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .pytest_tmp/
+.pytest_tmp*/
 .env
 
 saida_qwen/
 saida_comparacao/
+docs/
