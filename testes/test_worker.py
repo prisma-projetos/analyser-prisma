@@ -106,6 +106,96 @@ def test_ciclo_completo_evento_ate_panorama(worker, conexao) -> None:
     assert texto and texto.strip(), "panorama gravado sem texto"
 
 
+def test_execucao_auditada_registra_as_duas_trilhas(worker, conexao) -> None:
+    """A invocação do worker deixa contagens e limites consultáveis no PostgreSQL."""
+    resultado = worker.executar(limite_eventos=10, limite_consolidar=10)
+
+    assert resultado.execucao_id is not None
+    assert resultado.eventos_processados == 1, resultado.erros
+    assert resultado.itens_criados >= 1
+    assert resultado.resumos_gerados >= 1
+    assert resultado.panoramas_gravados >= 1
+
+    linha = conexao.execute(
+        """SELECT numero_execucao, status, capacidade_lote, quantidade_eventos,
+                  quantidade_itens, quantidade_resumos, quantidade_panoramas,
+                  modelo, finalizado_em, auditoria_json, erro
+             FROM analyser_execucao WHERE execucao_id = %s""",
+        (resultado.execucao_id,),
+    ).fetchone()
+    assert linha is not None
+    numero, status, capacidade, eventos, itens, resumos, panoramas, modelo, fim, dados, erro = linha
+    assert numero == 1
+    assert status == "concluida"
+    assert capacidade == 10
+    assert (eventos, itens, resumos, panoramas) == (
+        resultado.eventos_processados,
+        resultado.itens_criados,
+        resultado.resumos_gerados,
+        resultado.panoramas_gravados,
+    )
+    assert modelo == "fake"
+    assert fim is not None
+    assert erro is None
+    assert dados["limites"] == {"eventos": 10, "consolidar": 10}
+    assert dados["resultado"]["itens_criados"] == resultado.itens_criados
+
+
+def test_consolidar_tudo_fecha_a_fotografia_de_janelas_pendentes(
+    worker, conexao
+) -> None:
+    """O modo sem teto descobre ator + mês e não exige que o operador calcule K."""
+    eventos = worker.processar_eventos(limite=10)
+    assert eventos.eventos_processados == 1, eventos.erros
+
+    pendentes_antes = worker.quantidade_janelas_pendentes()
+    assert pendentes_antes >= 1
+
+    resultado = worker.executar(consolidar_tudo=True)
+
+    assert resultado.janelas_consolidadas == pendentes_antes, resultado.erros
+    assert worker.quantidade_janelas_pendentes() == 0
+
+    capacidade, dados = conexao.execute(
+        """SELECT capacidade_lote, auditoria_json FROM analyser_execucao
+             WHERE execucao_id = %s""",
+        (resultado.execucao_id,),
+    ).fetchone()
+    assert capacidade == 0, "zero representa consolidação sem teto numérico"
+    assert dados["limites"] == {
+        "eventos": 0,
+        "consolidar": 0,
+        "consolidar_tudo": True,
+    }
+    assert dados["unidade_capacidade_lote"] == "todas_as_janelas_pendentes"
+
+
+def test_eventos_com_consolidar_tudo_fecha_o_fluxo_automaticamente(
+    worker, conexao
+) -> None:
+    """Quando os modos são combinados, a consolidação roda depois dos eventos."""
+    resultado = worker.executar(limite_eventos=10, consolidar_tudo=True)
+
+    assert resultado.eventos_processados == 1, resultado.erros
+    assert resultado.resumos_gerados >= 1
+    assert resultado.janelas_consolidadas >= 1
+    assert resultado.panoramas_gravados >= 1
+    assert worker.quantidade_janelas_pendentes() == 0
+
+    dados = conexao.execute(
+        "SELECT auditoria_json FROM analyser_execucao WHERE execucao_id = %s",
+        (resultado.execucao_id,),
+    ).fetchone()[0]
+    assert dados["limites"]["eventos"] == 10
+    assert dados["limites"]["consolidar_tudo"] is True
+
+
+def test_consolidar_tudo_e_limite_numerico_sao_excludentes(worker) -> None:
+    """Dois modos contraditórios devem falhar antes de criar uma execução."""
+    with pytest.raises(ValueError, match="não ambos"):
+        worker.executar(limite_consolidar=1, consolidar_tudo=True)
+
+
 def test_reprocessar_o_mesmo_evento_nao_paga_o_modelo_de_novo(worker, conexao) -> None:
     """O cache é o que torna seguro rodar de novo depois de uma interrupção."""
     primeira = worker.processar_eventos(limite=10)
@@ -123,7 +213,7 @@ def test_reprocessar_o_mesmo_evento_nao_paga_o_modelo_de_novo(worker, conexao) -
     assert segunda.itens_ja_existentes >= 1
 
 
-def test_evento_invalido_vira_erro_sem_derrubar_o_lote(worker, conexao) -> None:
+def test_evento_invalido_marca_execucao_como_falha_sem_derrubar_o_lote(worker, conexao) -> None:
     """Uma mensagem ruim não pode impedir as boas de serem processadas."""
     conexao.execute(
         """INSERT INTO analyser_inbox_evento (payload_hash, article_id, pipeline_version, payload_json)
@@ -131,7 +221,7 @@ def test_evento_invalido_vira_erro_sem_derrubar_o_lote(worker, conexao) -> None:
     )
     conexao.commit()
 
-    resultado = worker.processar_eventos(limite=10)
+    resultado = worker.executar(limite_eventos=10)
 
     assert resultado.eventos_processados == 1, "o evento válido não foi processado"
     assert resultado.erros, "o evento inválido não virou erro registrado"
@@ -142,3 +232,39 @@ def test_evento_invalido_vira_erro_sem_derrubar_o_lote(worker, conexao) -> None:
         ).fetchall()
     )
     assert status[-1] == "erro"
+
+    status_execucao, erro_execucao = conexao.execute(
+        "SELECT status, erro FROM analyser_execucao WHERE execucao_id = %s",
+        (resultado.execucao_id,),
+    ).fetchone()
+    assert status_execucao == "falhou"
+    assert "evento" in erro_execucao
+
+
+def test_interrupcao_deixa_execucao_em_andamento_e_nao_bloqueia_retomada(
+    worker, conexao, monkeypatch
+) -> None:
+    """Uma interrupção abrupta é visível e a próxima execução continua independente."""
+    processar_original = worker.processar_eventos
+
+    def interromper(*, limite: int) -> ResultadoWorker:
+        raise KeyboardInterrupt("interrupção de teste")
+
+    monkeypatch.setattr(worker, "processar_eventos", interromper)
+    with pytest.raises(KeyboardInterrupt):
+        worker.executar(limite_eventos=1)
+
+    execucao_interrompida = conexao.execute(
+        "SELECT execucao_id, status, finalizado_em FROM analyser_execucao"
+    ).fetchone()
+    assert execucao_interrompida[1:] == ("em_andamento", None)
+
+    monkeypatch.setattr(worker, "processar_eventos", processar_original)
+    retomada = worker.executar(limite_eventos=10)
+
+    assert retomada.eventos_processados == 1, retomada.erros
+    status = conexao.execute(
+        "SELECT status FROM analyser_execucao WHERE execucao_id = %s",
+        (retomada.execucao_id,),
+    ).fetchone()[0]
+    assert status == "concluida"

@@ -2,7 +2,9 @@
 
     .venv/Scripts/python.exe -m scripts.processar --eventos 50
     .venv/Scripts/python.exe -m scripts.processar --consolidar 20
+    .venv/Scripts/python.exe -m scripts.processar --consolidar-tudo
     .venv/Scripts/python.exe -m scripts.processar --eventos 50 --consolidar 20
+    .venv/Scripts/python.exe -m scripts.processar --eventos 50 --consolidar-tudo
 
 Roda DEPOIS de `scripts.drenar_fila`, que só traz a mensagem para a inbox. A separação é o
 que permite drenar a fila em segundos e pagar o modelo depois, no próprio ritmo.
@@ -57,13 +59,21 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(prog="processar")
     parser.add_argument("--eventos", type=int, default=0, help="máximo de eventos a processar")
-    parser.add_argument("--consolidar", type=int, default=0, help="máximo de janelas")
+    grupo_consolidacao = parser.add_mutually_exclusive_group()
+    grupo_consolidacao.add_argument(
+        "--consolidar", type=int, default=0, help="máximo de janelas de ator + mês"
+    )
+    grupo_consolidacao.add_argument(
+        "--consolidar-tudo",
+        action="store_true",
+        help="consolida todas as janelas de ator + mês atualmente pendentes",
+    )
     parser.add_argument("--modelo", choices=("fake", "api"), default="api")
     parser.add_argument("--log-level", default="WARNING")
     args = parser.parse_args(argv)
 
-    if not args.eventos and not args.consolidar:
-        parser.error("informe --eventos e/ou --consolidar")
+    if not args.eventos and not args.consolidar and not args.consolidar_tudo:
+        parser.error("informe --eventos, --consolidar e/ou --consolidar-tudo")
 
     logging.basicConfig(level=getattr(logging, args.log_level), format="%(message)s")
     carregar_dotenv(Path(".env"))
@@ -80,24 +90,28 @@ def main(argv: list[str] | None = None) -> int:
 
     with psycopg.connect(dsn) as conexao:
         worker = Worker(conexao, modelo, config)
-
+        limites: list[str] = []
         if args.eventos:
-            print(f"processando até {args.eventos} eventos...")
-            _relatar("eventos", worker.processar_eventos(limite=args.eventos))
-
+            limites.append(f"até {args.eventos} eventos")
         if args.consolidar:
-            print(f"\nconsolidando até {args.consolidar} janelas...")
-            _relatar("janelas", worker.consolidar_janelas(limite=args.consolidar))
+            limites.append(f"até {args.consolidar} janelas")
+        elif args.consolidar_tudo:
+            limites.append("todas as janelas pendentes")
+        print(f"execução auditada: {' e '.join(limites)}...")
+        resultado = worker.executar(
+            limite_eventos=args.eventos,
+            limite_consolidar=args.consolidar,
+            consolidar_tudo=args.consolidar_tudo,
+        )
+        _relatar(f"execução #{resultado.execucao_id}", resultado)
 
         pendentes = conexao.execute(
             "SELECT count(*) FROM analyser_inbox_evento WHERE status = 'recebido'"
         ).fetchone()[0]
-        sujas = conexao.execute(
-            "SELECT count(DISTINCT janela_mes) FROM analyser_item WHERE status = 'resumido'"
-        ).fetchone()[0]
+        sujas = worker.quantidade_janelas_pendentes()
 
     print(f"\nrestam: {pendentes} eventos por processar, {sujas} janelas por consolidar")
-    return 0
+    return 1 if resultado.erros else 0
 
 
 if __name__ == "__main__":

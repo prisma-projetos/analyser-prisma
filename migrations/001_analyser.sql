@@ -117,8 +117,9 @@ CREATE TABLE analyser_execucao (
     numero_execucao      INT         NOT NULL,
     status               VARCHAR(20) NOT NULL
                          CHECK (status IN ('em_andamento','concluida','falhou')),
-    -- Teto configurado, NÃO a quantidade processada. A distinção é registrada de
-    -- propósito: já houve relatório que confundiu as duas.
+    -- Teto configurado, NÃO a quantidade processada. Zero representa o modo sem teto
+    -- `consolidar_tudo`. A distinção é registrada de propósito: já houve relatório que
+    -- confundiu as duas.
     capacidade_lote      INT         NOT NULL,
     quantidade_eventos   INT         NOT NULL DEFAULT 0,
     quantidade_itens     INT         NOT NULL DEFAULT 0,
