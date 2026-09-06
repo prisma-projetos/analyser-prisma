@@ -263,3 +263,45 @@ def test_o_pipeline_real_sempre_grava_fontes_completa(tmp_path: Path) -> None:
         }
         assert set(panorama["fontes"]) == entrada
         assert panorama["total_itens"] == len(entrada)
+
+
+def test_o_modelo_recebe_ids_curtos_e_o_gravado_tem_ids_reais(tmp_path: Path) -> None:
+    """O id curto é interno ao reduce e nunca vaza para o que é persistido.
+
+    Os ids reais têm ~30 caracteres e sufixo comum a todos os itens do ator. Reescrevê-los
+    dezenas de vezes colocava a geração num regime de repetição do qual ela não saía —
+    medido no lote que travava: 900 s e 14000 tokens com id real, 108 s e 1702 tokens com
+    id curto, mesma configuração.
+
+    A troca só é segura se a tradução de volta for completa: `temas[].fontes` alimenta a
+    rastreabilidade que o frontend usa para resolver cada chip de fonte. Um "7" que
+    escapasse até o banco seria uma referência para lugar nenhum.
+    """
+    resultado = rodar(tmp_path, "rodada_1.json", ModeloFake())
+    assert not resultado.erros
+
+    panoramas = ler_json(tmp_path / "panoramas.json")
+    reais = set(ler_json(tmp_path / "resumos_item.json"))
+    assert panoramas
+
+    for registro in panoramas:
+        for tema in registro["panorama"]["temas"]:
+            assert tema["fontes"], "tema sem fonte nenhuma"
+            for fonte in tema["fontes"]:
+                assert not fonte.isdigit(), f"id curto vazou para o disco: {fonte!r}"
+                assert fonte in reais, f"id inexistente gravado: {fonte!r}"
+
+
+def test_a_parcial_nao_pede_fontes_ao_modelo() -> None:
+    """`fontes` do lote é escrituração: o Python sabe o que mandou.
+
+    Medido com o loop já resolvido: o modelo listava 26 das 88 fontes do lote, porque o
+    formato pedia `"fontes": ["<id>"]` sem dizer "todas as do lote". Mesmo mal-entendido
+    que já custara um panorama com metade da cobertura, uma camada acima.
+    """
+    pedido = ConsolidacaoParcial.esquema_do_modelo()["properties"]
+    completo = ConsolidacaoParcial.model_json_schema()["properties"]
+
+    assert "fontes" not in pedido
+    assert sorted(pedido) == ["pontos", "temas"]
+    assert "fontes" in completo, "o campo continua existindo no objeto persistido"

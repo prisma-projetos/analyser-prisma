@@ -15,7 +15,7 @@ from analyser.config import carregar_dotenv
 from analyser.enriquecimento import (
     REGRA_AGREGACAO,
     Trecho,
-    agregar_rotulo,
+    separar_por_eixo,
     titulo_sintetico,
 )
 
@@ -36,44 +36,77 @@ def trecho(indice: int, sentimento: str, score: float = 1.0) -> Trecho:
 # --------------------------------------------------------------------------------------
 
 
-def test_maioria_simples_vence() -> None:
-    """Dois negativos contra um neutro dão negativo."""
-    rotulo, regra = agregar_rotulo(
-        [trecho(0, "negativo"), trecho(2, "negativo"), trecho(5, "neutro")]
-    )
-    assert (rotulo, regra) == ("negativo", REGRA_AGREGACAO)
+def test_sinal_confiante_nao_e_derrotado_por_nao_sei() -> None:
+    """A regressão do erro de categoria que a regra antiga cometia.
 
+    Este teste é o inverso exato do que existia aqui até 3 de setembro de 2026. O antigo
+    afirmava, e documentava como limitação conhecida, que uma classificação confiante era
+    derrotada por catorze "não sei" — porque `score_confianca = 0` era gravado como
+    `neutro` e votava com peso igual.
 
-def test_empate_vira_neutro() -> None:
-    """Quando a cobertura se divide igualmente, não se afirma tendência."""
-    rotulo, _ = agregar_rotulo([trecho(0, "negativo"), trecho(1, "positivo")])
-    assert rotulo == "neutro"
-
-
-def test_trecho_unico_define_o_item() -> None:
-    rotulo, _ = agregar_rotulo([trecho(3, "positivo")])
-    assert rotulo == "positivo"
-
-
-def test_sem_trechos_e_neutro() -> None:
-    assert agregar_rotulo([])[0] == "neutro"
-
-
-def test_score_zero_vota_com_o_mesmo_peso() -> None:
-    """Registra a limitação conhecida da regra atual, em vez de escondê-la.
-
-    Na amostra real, 65% dos trechos têm score 0 e TODOS são neutro — o que significa "o
-    léxico não achou marcador", não "a cobertura é neutra". Sob maioria simples, uma única
-    classificação confiante é derrotada por catorze "não sei".
-
-    Este teste falha de propósito no dia em que a regra mudar, forçando quem mudar a
-    reconhecer que o comportamento antigo era este.
+    Medido na base: score 0 aparece EXCLUSIVAMENTE com neutro, nas 56.689 linhas do
+    Classifier. "Neutro" e "não achei marcador" são o mesmo valor, e deixar uma abstenção
+    vencer uma afirmação apagava sinal real: 121 itens (14%) viraram neutro tendo
+    classificação confiante.
     """
     trechos = [trecho(0, "positivo", score=1.0)] + [
         trecho(i, "neutro", score=0.0) for i in range(1, 15)
     ]
-    rotulo, _ = agregar_rotulo(trechos)
-    assert rotulo == "neutro", "a regra atual deixa o score 0 derrotar a classificação confiante"
+    recortes = separar_por_eixo(trechos)
+
+    assert set(recortes) == {"positivo"}
+    assert len(recortes["positivo"]) == 15, "os 14 sem sinal entram como contexto"
+
+
+def test_materia_com_os_dois_sinais_rende_dois_recortes() -> None:
+    """Elogio e crítica na mesma matéria não se anulam — cada um vira seu recorte.
+
+    Sob maioria simples isto virava um empate, e empate virava neutro: os dois sinais
+    eram apagados de uma vez. Num produto cujas abas são "Elogios" e "Críticas", era a
+    matéria mais informativa que sumia das duas.
+    """
+    recortes = separar_por_eixo(
+        [trecho(0, "positivo"), trecho(1, "positivo"),
+         trecho(2, "negativo"), trecho(3, "negativo")]
+    )
+
+    assert set(recortes) == {"positivo", "negativo"}
+    assert [t.paragraph_index for t in recortes["positivo"]] == [0, 1]
+    assert [t.paragraph_index for t in recortes["negativo"]] == [2, 3]
+
+
+def test_trechos_sem_sinal_entram_em_todos_os_recortes() -> None:
+    """Contexto é compartilhado, não dividido.
+
+    Um trecho positivo isolado costuma não dizer quem, quando, nem em que circunstância.
+    Como o resumo de um item é escrito apenas a partir dos trechos DELE, descartar o
+    contexto deixaria elogio e crítica pendurados no ar.
+    """
+    recortes = separar_por_eixo(
+        [trecho(0, "neutro", score=0.0), trecho(1, "positivo"),
+         trecho(2, "negativo"), trecho(3, "neutro", score=0.0)]
+    )
+
+    for eixo in ("positivo", "negativo"):
+        indices = [t.paragraph_index for t in recortes[eixo]]
+        assert 0 in indices and 3 in indices, f"contexto faltando no recorte {eixo}"
+        assert indices == sorted(indices), "ordem de parágrafo precisa ser preservada"
+
+
+def test_sem_sinal_nenhum_e_neutro_com_tudo() -> None:
+    """Neutro deixa de ser o resultado de uma votação e passa a ser a ausência de sinal.
+
+    Continua sendo a maioria — 656 dos 859 itens (76%) não têm nenhum marcador. Esse teto
+    é do Classifier, não da regra de agregação: nenhuma regra inventa sinal onde não há.
+    """
+    recortes = separar_por_eixo([trecho(i, "neutro", score=0.0) for i in range(3)])
+
+    assert set(recortes) == {"neutro"}
+    assert len(recortes["neutro"]) == 3
+
+
+def test_sem_trechos_e_neutro() -> None:
+    assert set(separar_por_eixo([])) == {"neutro"}
 
 
 def test_titulo_sintetico_e_deterministico() -> None:
@@ -120,11 +153,16 @@ def test_enriquece_um_evento_real_do_outbox() -> None:
 
     assert itens, "nenhum item montado a partir de um evento real"
 
-    atores = {(i.entity_type, i.entity_id) for i in itens}
-    assert len(atores) == len(itens), "mais de um item para o mesmo ator"
+    # A unidade passou a ser notícia × ator × EIXO em 3 de setembro de 2026: um ator com
+    # elogio e crítica na mesma matéria rende dois itens. O que continua único é a
+    # combinação com o eixo — e é isso que faz `item_id` ser chave.
+    recortes = {(i.entity_type, i.entity_id, i.rotulo) for i in itens}
+    assert len(recortes) == len(itens), "dois itens para o mesmo ator no mesmo eixo"
+    assert len({i.item_id for i in itens}) == len(itens), "item_id repetido"
 
     for item in itens:
         assert item.item_id.startswith(f"art_{evento.article_id}__")
+        assert item.item_id.endswith(f"__{item.rotulo}"), "eixo ausente no item_id"
         assert item.rotulo in ("positivo", "negativo", "neutro")
         assert item.regra_agregacao_versao == REGRA_AGREGACAO
         assert item.trechos, "item sem trechos"
