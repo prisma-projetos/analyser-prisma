@@ -48,6 +48,30 @@ FORMATO_POR_EIXO: Final[dict[Eixo, str]] = {
     "neutro": "neutro",
 }
 
+#: Confiança mínima para um trecho contar como SINAL de polaridade.
+#:
+#: Abaixo disso o trecho não deixa de existir e não é reescrito: ele continua no registro
+#: com o que o Classifier disse, e passa a valer como CONTEXTO — entra no texto dos dois
+#: recortes, mas não decide eixo nenhum.
+#:
+#: Medido na base real em 3 de setembro de 2026: `score_confianca = 0` aparece
+#: EXCLUSIVAMENTE com `neutro`, nas 56.689 linhas de `tabela_classificacao` e nos 2.156
+#: trechos que chegaram ao Analyser. Ou seja, "neutro" e "o léxico não achou marcador"
+#: são o mesmo valor — não existe um único neutro confiante na base.
+#:
+#: Por isso a regra antiga, de maioria simples, era um erro de categoria: ela deixava uma
+#: abstenção votar contra uma classificação confiante, e num artigo real a única
+#: classificação confiante foi derrotada por catorze "não sei". Custo medido: 121 itens
+#: (14%) viraram neutro apesar de terem sinal confiante, e o eixo neutro ficou com 90,5%
+#: de tudo.
+#:
+#: Fica em zero porque hoje é o que reproduz a intenção: qualquer marcador encontrado
+#: conta. Existe como constante, e não como `> 0` cravado no código, porque o Classifier
+#: PRODUZ gradiente — 0,111 a 0,846 aparecem em 173 das 56.689 linhas. Esses casos ainda
+#: não chegaram ao Analyser, mas vão chegar, e no dia em que 0,111 decidir a polaridade
+#: de um artigo inteiro, subir este número é mudar um valor, não reescrever a lógica.
+LIMIAR_CONFIANCA: Final[float] = 0.0
+
 #: Regra 8. Determinismo é requisito, não preferência.
 TEMPERATURA: Final[float] = 0.0
 

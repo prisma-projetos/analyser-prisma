@@ -73,6 +73,12 @@ mais assuntos do que isso. Nesse caso, ESCOLHA — não comprima.
 RESUMOS DO LOTE
 {RESUMOS}
 
+SOBRE OS IDS
+Cada resumo vem com um `fonte_id` numérico curto — 1, 2, 3. Use exatamente esses números
+ao citar, nunca invente outro e nunca escreva um número que não esteja na lista abaixo.
+Não é preciso repetir a lista completa de ids no final: quem consolidou o lote sabe quais
+matérias entraram nele. Cite apenas os ids que sustentam cada tema e cada ponto.
+
 FORMATO DA RESPOSTA
 Responda apenas com um objeto JSON, sem cercas de código e sem comentários:
-{"temas": [{"tema": "<expressão curta>", "ocorrencias": <inteiro>, "fontes": ["<id>"]}], "pontos": ["<o que a cobertura registra, com os ids>"], "fontes": ["<id>"]}
+{"temas": [{"tema": "<expressão curta>", "ocorrencias": <inteiro>, "fontes": ["<id>"]}], "pontos": ["<o que a cobertura registra, com os ids>"]}

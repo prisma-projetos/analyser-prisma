@@ -185,16 +185,40 @@ class ConsolidacaoParcial(BaseModel):
     campos viram `maxItems` no JSON Schema, o servidor converte o schema em gramática, e
     o decodificador fica obrigado a fechar a lista. Vira garantia mecânica.
 
-    `fontes` continua sem teto de propósito: é a lista de ids que marca cada item como
-    `consolidado`. Limitá-la produziria exatamente o dano que este módulo passou a
-    detectar — item que participou da consolidação e ficou órfão em `resumido`.
+    O modelo responde com ids CURTOS (1, 2, 3), traduzidos de volta em `_etapa_4_e_5`.
+    Ver o comentário lá: os ids reais transformavam a saída num regime de repetição do
+    qual a geração não saía.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     temas: Annotated[list[TemaContado], Field(max_length=MAX_TEMAS_POR_LOTE)]
     pontos: Annotated[list[str], Field(max_length=MAX_PONTOS_POR_LOTE)]
-    fontes: Annotated[list[str], Field(min_length=1)]
+
+    # -- preenchido pelo Python, NUNCA pelo modelo --------------------------------------
+    #
+    # Saiu do que se pede ao modelo em 3 de setembro de 2026, pelo mesmo motivo que já
+    # havia tirado `fontes` do `Panorama`: é escrituração, não interpretação. O Python
+    # sabe exatamente quais resumos mandou no lote — perguntar de volta é convidar erro
+    # onde já existe resposta exata.
+    #
+    # Medido depois que o loop de repetição foi resolvido, com o modelo respondendo bem:
+    # ele listou 26 das 88 fontes do lote. Não é falha dele — o formato pede
+    # `"fontes": ["<id>"]` sem dizer "todas as do lote", e "as que eu usei" é leitura
+    # razoável. O mesmo mal-entendido, uma camada abaixo.
+    #
+    # `temas[].fontes` continua sendo do modelo: ali o id É interpretação — diz qual
+    # matéria sustenta AQUELE tema.
+    fontes: list[str] = Field(default_factory=list)
+
+    @classmethod
+    def esquema_do_modelo(cls) -> dict[str, Any]:
+        """JSON Schema do que se PEDE ao modelo — sem o campo que o Python preenche."""
+        esquema = cls.model_json_schema()
+        esquema["properties"].pop("fontes", None)
+        if "fontes" in esquema.get("required", []):
+            esquema["required"].remove("fontes")
+        return esquema
 
 
 # --------------------------------------------------------------------------------------

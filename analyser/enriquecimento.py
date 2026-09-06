@@ -35,12 +35,15 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
-from analyser.config import Eixo
+from analyser.config import LIMIAR_CONFIANCA, Eixo
 from analyser.schemas import NotificacaoClassifier
 
 #: Versão da regra que transforma vários rótulos de trecho em um só. Gravada em cada item
 #: para que trocar a regra no futuro não torne os rótulos antigos incomparáveis com os novos.
-REGRA_AGREGACAO = "maioria-v1"
+REGRA_AGREGACAO = "eixo-por-sinal-v2"
+
+#: Separador entre trechos na concatenação do texto de um item.
+SEPARADOR = '\n\n'
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,29 +94,60 @@ class ItemEnriquecido:
     avisos: list[str] = field(default_factory=list)
 
 
-def agregar_rotulo(trechos: list[Trecho]) -> tuple[Eixo, str]:
-    """Reduz os rótulos dos trechos de um ator a um só.
+def separar_por_eixo(
+    trechos: list[Trecho], limiar: float = LIMIAR_CONFIANCA
+) -> dict[Eixo, list[Trecho]]:
+    """Divide os trechos de um ator nos recortes que a matéria de fato sustenta.
 
-    Maioria simples, empate vira neutro. Devolve também a versão da regra, para o item
-    guardar sob qual critério aquele rótulo foi calculado.
+    Substituiu `agregar_rotulo` (maioria simples, empate vira neutro) em 3 de setembro de
+    2026. A regra antiga tinha um erro de categoria: `score_confianca = 0` significa "o
+    léxico não achou marcador", nunca "a cobertura é neutra" — medido, é o ÚNICO valor com
+    que `neutro` aparece em toda a base. Sob maioria simples, essas abstenções votavam com
+    o mesmo peso de classificações confiantes, e ganhavam: 121 itens (14%) viraram neutro
+    tendo sinal confiante, e o eixo neutro concentrou 90,5% de tudo.
 
-    ISOLADA DE PROPÓSITO, e a regra está sob questionamento. Medido na amostra real: 65%
-    dos trechos têm `score_confianca` 0, e TODOS são "neutro" — o que significa "o léxico
-    não achou marcador", não "a cobertura é neutra". Sob maioria simples esses "não sei"
-    votam com o mesmo peso das classificações confiantes, e num artigo real a única
-    classificação confiante foi derrotada por catorze delas.
+    A regra nova não decide, SEPARA. Não há maioria a apurar nem empate a desempatar:
 
-    Trocar isto é trocar o corpo desta função e a constante de versão. Nada mais no módulo
-    depende de como a decisão é tomada.
+        tem trecho positivo confiante?  -> existe um recorte positivo
+        tem trecho negativo confiante?  -> existe um recorte negativo
+        não tem nenhum dos dois?        -> um recorte neutro, com tudo
+
+    Uma matéria que elogia E critica passa a render os dois recortes, em vez de colapsar
+    num neutro que apagava os dois — o que importa para um produto cujas abas são
+    exatamente "Elogios" e "Críticas".
+
+    Os trechos abaixo do limiar entram em TODOS os recortes, como contexto compartilhado.
+    Descartá-los deixaria o elogio ou a crítica sem o parágrafo que diz quem, quando e em
+    que circunstância — e o resumo é escrito só a partir do que está no recorte.
+
+    A ordem de parágrafo é preservada: o texto do item é a concatenação desses trechos, e
+    fora de ordem ele deixa de se ler como matéria.
+
+    Efeito medido sobre os 859 itens existentes: neutro 90,5% -> 75,3%, positivo
+    6,4% -> 17,2%, negativo 3,1% -> 7,5%. Apenas 12 itens (1,4%) têm os dois sinais e
+    portanto se dividem em dois.
     """
     if not trechos:
-        return "neutro", REGRA_AGREGACAO
+        return {"neutro": []}
 
-    votos = Counter(t.classificacao_sentimento for t in trechos)
-    mais_votados = votos.most_common()
-    if len(mais_votados) > 1 and mais_votados[0][1] == mais_votados[1][1]:
-        return "neutro", REGRA_AGREGACAO
-    return mais_votados[0][0], REGRA_AGREGACAO
+    def em_ordem(lista: list[Trecho]) -> list[Trecho]:
+        return sorted(lista, key=lambda t: t.paragraph_index)
+
+    confiantes = [t for t in trechos if t.score_confianca >= limiar and t.score_confianca > 0]
+    contexto = [t for t in trechos if t not in confiantes]
+
+    positivos = [t for t in confiantes if t.classificacao_sentimento == "positivo"]
+    negativos = [t for t in confiantes if t.classificacao_sentimento == "negativo"]
+
+    if not positivos and not negativos:
+        return {"neutro": em_ordem(trechos)}
+
+    recortes: dict[Eixo, list[Trecho]] = {}
+    if positivos:
+        recortes["positivo"] = em_ordem(positivos + contexto)
+    if negativos:
+        recortes["negativo"] = em_ordem(negativos + contexto)
+    return recortes
 
 
 def titulo_sintetico(article_id: int, ator_nome: str) -> str:
@@ -191,9 +225,12 @@ class Enriquecedor:
         for c in evento.classificacoes:
             por_ator.setdefault((c.entity_type, str(c.entity_id)), []).append(c)
 
+        # Um ator pode render MAIS de um item: uma matéria que elogia e critica vira um
+        # recorte positivo e um negativo. Ver `separar_por_eixo`.
         return [
-            self._montar(evento, tipo, eid, cls)
+            item
             for (tipo, eid), cls in por_ator.items()
+            for item in self._montar(evento, tipo, eid, cls)
         ]
 
     def _montar(
@@ -202,7 +239,7 @@ class Enriquecedor:
         entity_type: str,
         entity_id: str,
         classificacoes: list[Any],
-    ) -> ItemEnriquecido:
+    ) -> list[ItemEnriquecido]:
         avisos: list[str] = []
         linhas = self._linhas_do_ator(
             evento.article_id, evento.pipeline_version, entity_type, entity_id
@@ -263,11 +300,41 @@ class Enriquecedor:
         if publicacao is None:
             avisos.append(f"artigo {evento.article_id} sem data de publicação")
 
-        rotulo, regra = agregar_rotulo(trechos)
         titulo = titulo_sintetico(evento.article_id, nome)
+        recortes = separar_por_eixo(trechos)
 
+        itens: list[ItemEnriquecido] = []
+        for rotulo, trechos_do_eixo in recortes.items():
+            # O texto é recortado junto: o resumo de um item é escrito só a partir dos
+            # trechos DELE. Por isso o hash muda entre recortes e cada um paga o seu
+            # resumo — mas só quando há de fato dois sinais. Quando há um só, o recorte
+            # contém todos os trechos e o texto é idêntico ao de antes.
+            partes_eixo = [tr.texto for tr in trechos_do_eixo if tr.texto]
+            texto_eixo = SEPARADOR.join(p for p in partes_eixo if p.strip()) or texto
+
+            itens.append(self._item_do_recorte(
+                evento=evento, entity_type=entity_type, entity_id=entity_id,
+                nome=nome, titulo=titulo, texto=texto_eixo, rotulo=rotulo,
+                trechos=trechos_do_eixo, primeira=primeira, veiculo=veiculo,
+                publicacao=publicacao, avisos=avisos,
+            ))
+        return itens
+
+    def _item_do_recorte(
+        self, *, evento: NotificacaoClassifier, entity_type: str, entity_id: str,
+        nome: str, titulo: str, texto: str, rotulo: Eixo, trechos: list[Trecho],
+        primeira: dict[str, Any], veiculo: str, publicacao: Any, avisos: list[str],
+    ) -> ItemEnriquecido:
+        """Monta o item de UM recorte de eixo.
+
+        O `item_id` carrega o eixo porque a unidade deixou de ser notícia × ator e passou
+        a ser notícia × ator × eixo. Isso tem um efeito colateral bom: a regra de
+        classificação imutável (`ConflitoClassificacao`) deixa de ser uma checagem em
+        tempo de execução e vira propriedade da chave — um item não tem como mudar de
+        rótulo, porque com outro rótulo ele é outro item.
+        """
         return ItemEnriquecido(
-            item_id=f"art_{evento.article_id}__{entity_type}_{entity_id}",
+            item_id=f"art_{evento.article_id}__{entity_type}_{entity_id}__{rotulo}",
             article_id=evento.article_id,
             entity_type=entity_type,
             entity_id=entity_id,
@@ -280,7 +347,7 @@ class Enriquecedor:
             titulo=titulo,
             texto=texto,
             rotulo=rotulo,
-            regra_agregacao_versao=regra,
+            regra_agregacao_versao=REGRA_AGREGACAO,
             trechos=trechos,
             # Cobre título E texto: os dois entram no prompt do resumo, então mudar o
             # título sem mudar o hash deixaria um resumo escrito sobre manchete velha.
@@ -295,7 +362,7 @@ __all__ = [
     "Enriquecedor",
     "ItemEnriquecido",
     "Trecho",
-    "agregar_rotulo",
+    "separar_por_eixo",
     "titulo_sintetico",
     "REGRA_AGREGACAO",
 ]

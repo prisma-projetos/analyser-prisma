@@ -305,6 +305,32 @@ class Analyser:
         A entrada são sempre os resumos curtos da etapa 1 — nunca os textos completos das
         notícias, nunca um panorama de rodada anterior.
         """
+        # O modelo trabalha com ids CURTOS — 1, 2, 3 —, nunca com o `item_id` real.
+        #
+        # A numeração é por EIXO, antes de lotear, e não por lote: as parciais de vários
+        # lotes chegam juntas na consolidação final, e numerar por lote faria o id 1 de um
+        # lote colidir com o id 1 de outro.
+        #
+        # Medido em 3 de setembro de 2026, no lote que travava (88 resumos do Flávio):
+        #
+        #     ids reais (`art_1234__politico_108563260302`)  900 s, 14000 tokens, timeout
+        #     ids curtos (`7`)                               108 s,  1702 tokens, sucesso
+        #
+        # Oito vezes mais rápido, oito vezes menos saída, na mesma configuração — sem
+        # penalidade de amostragem, sem mexer em temperatura, sem teto artificial.
+        #
+        # Os ids reais têm ~30 caracteres e um sufixo comum a todos os itens do ator. O
+        # modelo tinha de reescrever essa cadeia quase idêntica dezenas de vezes, e é isso
+        # que colocava a geração num regime de repetição — do qual ela não saía mais,
+        # passando a repetir também a PROSA. O loop de frases que se via era consequência,
+        # não causa: removida a repetição estrutural, ele desaparece sozinho.
+        #
+        # Ganhos que não dependem do loop: id inventado deixa de passar despercebido,
+        # porque um número fora de 1..N é rejeitado trivialmente — antes, um
+        # `art_28__partido_13` inexistente entrou numa resposta real sem ninguém notar.
+        curto_do_real = {r.fonte_id: str(i) for i, r in enumerate(resumos, start=1)}
+        real_do_curto = {curto: real for real, curto in curto_do_real.items()}
+
         lotes = [
             resumos[i : i + self.config.lote] for i in range(0, len(resumos), self.config.lote)
         ]
@@ -313,7 +339,12 @@ class Analyser:
         parciais: list[ConsolidacaoParcial] = []
         for numero_lote, lote in enumerate(lotes, start=1):
             carga = [
-                {"fonte_id": r.fonte_id, "resumo": r.resumo, "temas": r.temas, "veiculo": r.veiculo}
+                {
+                    "fonte_id": curto_do_real[r.fonte_id],
+                    "resumo": r.resumo,
+                    "temas": r.temas,
+                    "veiculo": r.veiculo,
+                }
                 for r in lote
             ]
             prompt_lote = self.prompts.montar_consolidacao_lote(
@@ -323,10 +354,16 @@ class Analyser:
                 self.modelo,
                 prompt=prompt_lote.texto,
                 schema=ConsolidacaoParcial,
+                esquema_pedido=ConsolidacaoParcial.esquema_do_modelo(),
                 tarefa="consolidacao_lote",
                 contexto={"resumos": carga, "eixo": eixo},
             )
             self._somar_tokens(parcial.tokens)
+            # Mesmo princípio já aplicado ao `Panorama`: escrituração é do Python. Medido
+            # no mesmo teste, com o loop já resolvido: o modelo listou 26 das 88 fontes,
+            # porque o formato pede `"fontes": ["<id>"]` sem dizer "todas as do lote" e
+            # ele entende, razoavelmente, "as que eu usei".
+            parcial.dados.fontes = [curto_do_real[r.fonte_id] for r in lote]
             parciais.append(parcial.dados)
             resultado.lotes_processados.append(
                 {
@@ -366,6 +403,13 @@ class Analyser:
         # desta consolidação é conhecido aqui, exatamente, e é ele que define tanto o que
         # o panorama cobre quanto quais itens viram `consolidado`. O modelo não é mais
         # perguntado sobre isso — ver `Panorama.fontes`.
+        # De volta ao id real, antes de verificar ou gravar: daqui em diante o resto do
+        # módulo — a etapa 6, a cobertura, o banco e o frontend — só conhece `item_id`.
+        # Um id que o modelo tenha inventado não existe neste mapa e é descartado aqui;
+        # a etapa 6 registra a divergência no aviso de contagem do tema.
+        for tema in final.dados.temas:
+            tema.fontes = [real_do_curto[f] for f in tema.fontes if f in real_do_curto]
+
         final.dados.fontes = [r.fonte_id for r in resumos]
         final.dados.total_itens = len(final.dados.fontes)
 
