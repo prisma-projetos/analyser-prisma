@@ -1,0 +1,22 @@
+# Ambiente local / cache
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.pytest_tmp/
+.pytest_tmp*/
+
+# Segredos: nunca devem entrar na imagem. Use --env-file .env em `docker run`.
+.env
+
+# Controle de versão e metadados que não fazem sentido dentro da imagem
+.git/
+.gitignore
+
+# Saídas geradas localmente — o container gera as suas próprias em runtime
+saida_qwen/
+saida_comparacao/
+
+# Documentação pesada, não necessária para rodar o código
+docs/
+relatorios/
