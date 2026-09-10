@@ -329,7 +329,7 @@ class Analyser:
         # porque um número fora de 1..N é rejeitado trivialmente — antes, um
         # `art_28__partido_13` inexistente entrou numa resposta real sem ninguém notar.
         curto_do_real = {r.fonte_id: str(i) for i, r in enumerate(resumos, start=1)}
-        real_do_curto = {curto: real for real, curto in curto_do_real.items()}
+        real_do_curto = {curto: real for real, curto in curto_do_real.items()} 
 
         lotes = [
             resumos[i : i + self.config.lote] for i in range(0, len(resumos), self.config.lote)
