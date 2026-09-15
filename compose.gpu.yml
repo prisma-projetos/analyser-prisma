@@ -1,0 +1,17 @@
+# Acréscimo para máquinas com GPU NVIDIA. Não é usado sozinho: entra por cima do
+# compose.yml.
+#
+#   docker compose -f compose.yml -f compose.gpu.yml up -d
+#
+# Exige o NVIDIA Container Toolkit no host. Sem ele, ou sem GPU, suba só o compose.yml —
+# o Ollama roda em CPU, bem mais devagar (veja TIMEOUT_SEGUNDOS no .env.example).
+
+services:
+  modelo:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
