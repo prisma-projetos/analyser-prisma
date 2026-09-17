@@ -39,6 +39,36 @@ python -m pytest
 
 ---
 
+## Verificar ou aplicar a migration PostgreSQL
+
+Antes do deploy, confira a migration `001` sem alterar o banco:
+
+```bash
+python -m scripts.aplicar_migration --schema public --check-only
+```
+
+O modo `--check-only` abre a sessão PostgreSQL como somente leitura e compara as quatro
+tabelas do núcleo, suas colunas, restrições e índices com o contrato mínimo da migration.
+Para aplicar quando o schema ainda está vazio:
+
+```bash
+python -m scripts.aplicar_migration --schema public
+```
+
+O executor diferencia três estados:
+
+- nenhuma tabela do núcleo existe: aplica a migration `001`;
+- as quatro tabelas existem e são compatíveis: informa que a migration já foi aplicada e
+  termina com código zero, sem executar novamente a DDL;
+- existe apenas parte das tabelas ou faltam objetos obrigatórios: termina com erro e não
+  tenta completar o schema automaticamente.
+
+A DDL continua sem `IF NOT EXISTS` de propósito. Assim, uma estrutura divergente não é
+silenciosamente aceita. Uma trava transacional também serializa dois Jobs de migration que
+sejam iniciados ao mesmo tempo.
+
+---
+
 ## Receber notificações do Classifier pelo RabbitMQ
 
 O consumidor recebe o payload publicado pelo Classifier, valida o schema e grava cada evento
