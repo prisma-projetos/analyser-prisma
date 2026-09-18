@@ -81,5 +81,3 @@ CONSOLIDAÇÕES PARCIAIS
 {PARCIAIS}
 
 Responda apenas com o objeto JSON pedido, sem cercas de código e sem comentários.
-
-/no_think

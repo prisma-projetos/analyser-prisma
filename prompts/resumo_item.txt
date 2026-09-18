@@ -41,5 +41,3 @@ texto:
 FORMATO DA RESPOSTA
 Responda apenas com um objeto JSON, sem cercas de código e sem comentários:
 {"resumo": "<2 a 3 frases>", "temas": ["<tema>", "..."], "fonte_id": "{ITEM_ID}"}
-
-/no_think

@@ -82,5 +82,3 @@ matérias entraram nele. Cite apenas os ids que sustentam cada tema e cada ponto
 FORMATO DA RESPOSTA
 Responda apenas com um objeto JSON, sem cercas de código e sem comentários:
 {"temas": [{"tema": "<expressão curta>", "ocorrencias": <inteiro>, "fontes": ["<id>"]}], "pontos": ["<o que a cobertura registra, com os ids>"]}
-
-/no_think
