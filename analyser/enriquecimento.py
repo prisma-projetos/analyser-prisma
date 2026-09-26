@@ -11,9 +11,11 @@ as classificações (entidade, `paragraph_index`, sentimento, score). Falta o co
 vem do `prisma-dev`:
 
 * texto      → `tabela_classificacao.paragrafo_analisado`, concatenado por ator
+* contexto   → os parágrafos dos OUTROS atores vizinhos aos do ator, na mesma matéria.
+               Vão para o prompt do resumo separados dos trechos; ver `contexto_vizinho`
 * veículo    → `tabela_classificacao.id_midia` → `tabela_midia.nome_midia`
 * nome       → `entidade_matching.nome_principal`, que cobre político e partido na mesma
-               tabela, chaveada igual ao payload
+               tabela, chaveada igual ao payload; os `aliases` viram os apelidos do ator
 * título     → NÃO EXISTE no prisma-dev. Sintético, derivado de (artigo, ator), nunca
                persistido: coluna que só guarda valor fabricado parece dado.
 
@@ -44,6 +46,16 @@ REGRA_AGREGACAO = "eixo-por-sinal-v2"
 
 #: Separador entre trechos na concatenação do texto de um item.
 SEPARADOR = '\n\n'
+
+#: Distância máxima, em parágrafos da matéria, para um parágrafo de outro ator entrar como
+#: contexto do resumo. Dois cobre o caso que motivou o contexto: no partido Missão, o
+#: parágrafo que dizia qual era "a escola" (a Acadêmicos de Niterói) era o imediatamente
+#: anterior, mas estava gravado para o Lula e o PT — e o resumo saiu sem o nome.
+VIZINHANCA_CONTEXTO = 2
+
+#: Teto de parágrafos de contexto por item. Algumas "matérias" raspadas são páginas com
+#: várias notícias sem relação entre si; o teto limita quanto disso chega ao prompt.
+MAX_PARAGRAFOS_CONTEXTO = 6
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +104,11 @@ class ItemEnriquecido:
     trechos: list[Trecho]
     conteudo_hash: str
     avisos: list[str] = field(default_factory=list)
+    #: Outros nomes do ator, de `entidade_matching.aliases`. Vão para o prompt do resumo.
+    ator_apelidos: list[str] = field(default_factory=list)
+    #: Parágrafos vizinhos da mesma matéria que não citam o ator, em ordem. Só entram no
+    #: prompt do resumo, separados dos trechos — ver `contexto_vizinho`.
+    contexto: list[str] = field(default_factory=list)
 
 
 def separar_por_eixo(
@@ -150,6 +167,46 @@ def separar_por_eixo(
     return recortes
 
 
+def contexto_vizinho(
+    paragrafos: dict[int, str],
+    *,
+    centros: set[int],
+    excluir: set[int],
+    distancia: int = VIZINHANCA_CONTEXTO,
+    maximo: int = MAX_PARAGRAFOS_CONTEXTO,
+) -> list[str]:
+    """Parágrafos da mesma matéria perto dos trechos do ator, na ordem da matéria.
+
+    `paragrafos` é `paragraph_index -> texto` de tudo o que o classificador guardou da
+    matéria; `centros`, os índices dos trechos deste recorte; `excluir`, todos os índices
+    do próprio ator — o contexto é o que ele NÃO disse, e um recorte não pode trazer os
+    trechos do outro recorte de volta por esta porta.
+
+    Quando há mais candidatos que o teto, ficam os mais próximos dos trechos. O resultado
+    sai na ordem da matéria, sem textos repetidos.
+    """
+    if not centros or maximo < 1:
+        return []
+
+    def proximidade(indice: int) -> int:
+        return min(abs(indice - centro) for centro in centros)
+
+    candidatos = [
+        i for i in paragrafos if i not in excluir and proximidade(i) <= distancia
+    ]
+    escolhidos = sorted(candidatos, key=lambda i: (proximidade(i), i))[:maximo]
+
+    textos_do_ator = {paragrafos[i].strip() for i in excluir if i in paragrafos}
+    vistos: set[str] = set()
+    contexto: list[str] = []
+    for indice in sorted(escolhidos):
+        texto = paragrafos[indice].strip()
+        if texto and texto not in vistos and texto not in textos_do_ator:
+            vistos.add(texto)
+            contexto.append(texto)
+    return contexto
+
+
 def titulo_sintetico(article_id: int, ator_nome: str) -> str:
     """Título derivado, porque o real não existe no prisma-dev.
 
@@ -203,19 +260,77 @@ class Enriquecedor:
                 {"artigo": article_id, "pipeline": pipeline_version, "entidade": entidade},
             ).fetchall()
 
-    def _nome_do_ator(self, entity_type: str, entity_id: str) -> str | None:
+    def _identidade_do_ator(
+        self, entity_type: str, entity_id: str
+    ) -> tuple[str, list[str]] | None:
+        """Nome principal e apelidos do ator em `entidade_matching`, ou `None`."""
         if entity_type == "politico":
             filtro, entidade = "nr_titulo_eleitoral_candidato = %(e)s", entity_id
         else:
             filtro, entidade = "nr_partido = %(e)s", int(entity_id)
 
         linha = self.conexao.execute(
-            f"""SELECT nome_principal FROM entidade_matching
+            f"""SELECT nome_principal, aliases FROM entidade_matching
                  WHERE entity_type = %(tipo)s AND ativo AND {filtro}
                  LIMIT 1""",
             {"tipo": entity_type, "e": entidade},
         ).fetchone()
-        return linha[0] if linha else None
+        if not linha:
+            return None
+        apelidos = [a.strip() for a in (linha[1] or []) if isinstance(a, str) and a.strip()]
+        return linha[0], apelidos
+
+    def apelidos_do_ator(self, entity_type: str, entity_id: str) -> list[str]:
+        """Outros nomes pelos quais o ator é citado. Lista vazia se ele não estiver no cadastro.
+
+        Usado pela consolidação, que monta o ator a partir de `analyser_item` e não tem
+        os apelidos gravados lá.
+        """
+        identidade = self._identidade_do_ator(entity_type, entity_id)
+        return identidade[1] if identidade else []
+
+    def _paragrafos_da_materia(self, evento: NotificacaoClassifier) -> dict[int, str]:
+        """`paragraph_index -> texto` de todo parágrafo da matéria que o classificador guardou.
+
+        É daqui que sai o contexto dos resumos. O classificador só guarda parágrafo que
+        cita alguém, e sem o índice; o índice vem da mensagem. A correlação é a mesma de
+        `_montar`, feita para cada ator citado: linhas do banco em ordem de
+        `id_classificacao` casam com classificações em ordem de índice, e só quando as
+        contagens batem — sem correlação segura, aquele ator não contribui com contexto.
+        """
+        indices: dict[tuple[str, str], list[int]] = {}
+        for c in evento.classificacoes:
+            indices.setdefault((c.entity_type, str(c.entity_id)), []).append(c.paragraph_index)
+
+        with self.conexao.cursor(row_factory=dict_row) as cur:
+            linhas = cur.execute(
+                """
+                SELECT c.nr_titulo_eleitoral_candidato, c.nr_partido, c.paragrafo_analisado
+                  FROM tabela_classificacao c
+                 WHERE c.id_artigo_scrape = %(artigo)s
+                   AND c.pipeline_version = %(pipeline)s
+                 ORDER BY c.id_classificacao
+                """,
+                {"artigo": evento.article_id, "pipeline": evento.pipeline_version},
+            ).fetchall()
+
+        textos: dict[tuple[str, str], list[str]] = {}
+        for linha in linhas:
+            if linha["nr_titulo_eleitoral_candidato"] is not None:
+                chave = ("politico", str(linha["nr_titulo_eleitoral_candidato"]))
+            else:
+                chave = ("partido", str(linha["nr_partido"]))
+            textos.setdefault(chave, []).append(linha["paragrafo_analisado"] or "")
+
+        paragrafos: dict[int, str] = {}
+        for chave, do_ator in indices.items():
+            gravados = textos.get(chave, [])
+            if len(gravados) != len(do_ator):
+                continue
+            for indice, texto in zip(sorted(do_ator), gravados):
+                if texto.strip():
+                    paragrafos.setdefault(indice, texto)
+        return paragrafos
 
     # -- montagem ----------------------------------------------------------------------
 
@@ -225,12 +340,16 @@ class Enriquecedor:
         for c in evento.classificacoes:
             por_ator.setdefault((c.entity_type, str(c.entity_id)), []).append(c)
 
+        # Uma consulta por matéria, compartilhada por todos os atores dela: o contexto de
+        # um ator são os parágrafos dos outros.
+        paragrafos = self._paragrafos_da_materia(evento)
+
         # Um ator pode render MAIS de um item: uma matéria que elogia e critica vira um
         # recorte positivo e um negativo. Ver `separar_por_eixo`.
         return [
             item
             for (tipo, eid), cls in por_ator.items()
-            for item in self._montar(evento, tipo, eid, cls)
+            for item in self._montar(evento, tipo, eid, cls, paragrafos)
         ]
 
     def _montar(
@@ -239,6 +358,7 @@ class Enriquecedor:
         entity_type: str,
         entity_id: str,
         classificacoes: list[Any],
+        paragrafos: dict[int, str],
     ) -> list[ItemEnriquecido]:
         avisos: list[str] = []
         linhas = self._linhas_do_ator(
@@ -285,10 +405,12 @@ class Enriquecedor:
             partes = [(l["paragrafo_analisado"] or "") for l in linhas]
         texto = "\n\n".join(p for p in partes if p.strip())
 
-        nome = self._nome_do_ator(entity_type, entity_id)
-        if nome is None:
-            nome = f"{entity_type}:{entity_id}"
+        identidade = self._identidade_do_ator(entity_type, entity_id)
+        if identidade is None:
+            nome, apelidos = f"{entity_type}:{entity_id}", []
             avisos.append(f"ator {entity_type}:{entity_id} sem nome em entidade_matching")
+        else:
+            nome, apelidos = identidade
 
         primeira = linhas[0] if linhas else {}
         veiculo = primeira.get("nome_midia")
@@ -312,11 +434,21 @@ class Enriquecedor:
             partes_eixo = [tr.texto for tr in trechos_do_eixo if tr.texto]
             texto_eixo = SEPARADOR.join(p for p in partes_eixo if p.strip()) or texto
 
+            # O contexto é o que os OUTROS atores da matéria têm perto destes trechos. Os
+            # trechos do próprio ator ficam de fora — inclusive os do outro recorte, que
+            # não podem voltar ao resumo por esta porta.
+            contexto = contexto_vizinho(
+                paragrafos,
+                centros={tr.paragraph_index for tr in trechos_do_eixo},
+                excluir={tr.paragraph_index for tr in trechos},
+            )
+
             itens.append(self._item_do_recorte(
                 evento=evento, entity_type=entity_type, entity_id=entity_id,
                 nome=nome, titulo=titulo, texto=texto_eixo, rotulo=rotulo,
                 trechos=trechos_do_eixo, primeira=primeira, veiculo=veiculo,
-                publicacao=publicacao, avisos=avisos,
+                publicacao=publicacao, avisos=avisos, apelidos=apelidos,
+                contexto=contexto,
             ))
         return itens
 
@@ -324,6 +456,7 @@ class Enriquecedor:
         self, *, evento: NotificacaoClassifier, entity_type: str, entity_id: str,
         nome: str, titulo: str, texto: str, rotulo: Eixo, trechos: list[Trecho],
         primeira: dict[str, Any], veiculo: str, publicacao: Any, avisos: list[str],
+        apelidos: list[str], contexto: list[str],
     ) -> ItemEnriquecido:
         """Monta o item de UM recorte de eixo.
 
@@ -349,12 +482,19 @@ class Enriquecedor:
             rotulo=rotulo,
             regra_agregacao_versao=REGRA_AGREGACAO,
             trechos=trechos,
-            # Cobre título E texto: os dois entram no prompt do resumo, então mudar o
-            # título sem mudar o hash deixaria um resumo escrito sobre manchete velha.
+            # Cobre título, texto e contexto: os três entram no prompt do resumo, então
+            # mudar um deles sem mudar o hash deixaria um resumo escrito sobre insumo
+            # velho. O contexto só entra quando existe, para item sem contexto manter o
+            # mesmo hash de antes.
             conteudo_hash=hashlib.sha256(
-                (titulo + "\n" + texto).encode("utf-8")
+                (
+                    titulo + "\n" + texto
+                    + (("\n\n" + SEPARADOR.join(contexto)) if contexto else "")
+                ).encode("utf-8")
             ).hexdigest(),
             avisos=avisos,
+            ator_apelidos=apelidos,
+            contexto=contexto,
         )
 
 
@@ -362,7 +502,10 @@ __all__ = [
     "Enriquecedor",
     "ItemEnriquecido",
     "Trecho",
+    "contexto_vizinho",
     "separar_por_eixo",
     "titulo_sintetico",
     "REGRA_AGREGACAO",
+    "VIZINHANCA_CONTEXTO",
+    "MAX_PARAGRAFOS_CONTEXTO",
 ]

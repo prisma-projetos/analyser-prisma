@@ -27,7 +27,7 @@ from analyser.modelos import (
     Modelo,
     gerar_validado,
 )
-from analyser.prompts import Prompts
+from analyser.prompts import Prompts, descrever_ator
 from analyser.schemas import (
     AtorPolitico,
     ConsolidacaoParcial,
@@ -222,10 +222,10 @@ class Analyser:
         prompt_resumo = self.prompts.montar_resumo_item(
             ator_nome=ator.nome,
             ator_tipo=ator.tipo,
+            ator_apelidos=ator.apelidos,
             item_id=item.id,
             veiculo=item.veiculo,
             data=item.data.isoformat(),
-            url=item.url,
             titulo=item.titulo,
             texto=item.texto,
         )
@@ -335,6 +335,12 @@ class Analyser:
             resumos[i : i + self.config.lote] for i in range(0, len(resumos), self.config.lote)
         ]
 
+        # Os dois níveis recebem o NOME do ator, com os apelidos. Até 26/09/2026 só o
+        # número do título eleitoral chegava aqui, e o modelo consolidava sem saber de
+        # quem era o panorama: não tinha como separar crítica AO ator de crítica feita
+        # POR ele, nem reconhecer dois nomes da mesma pessoa.
+        ator = descrever_ator(rodada.ator.nome, rodada.ator.tipo, rodada.ator.apelidos)
+
         # Nível 1: uma consolidação parcial por lote.
         parciais: list[ConsolidacaoParcial] = []
         for numero_lote, lote in enumerate(lotes, start=1):
@@ -348,7 +354,9 @@ class Analyser:
                 for r in lote
             ]
             prompt_lote = self.prompts.montar_consolidacao_lote(
-                eixo=eixo, resumos=json.dumps(carga, ensure_ascii=False, indent=2)
+                eixo=eixo,
+                ator=ator,
+                resumos=json.dumps(carga, ensure_ascii=False, indent=2),
             )
             parcial = gerar_validado(
                 self.modelo,
@@ -379,6 +387,7 @@ class Analyser:
         prompt_final = self.prompts.montar_consolidacao_final(
             eixo=eixo,
             ator_id=rodada.ator.id,
+            ator=ator,
             janela=janela,
             parciais=json.dumps(carga_parciais, ensure_ascii=False, indent=2),
             materias=len(resumos),

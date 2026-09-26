@@ -426,12 +426,13 @@ class Worker:
         prompt = self.prompts.montar_resumo_item(
             ator_nome=item.ator_nome,
             ator_tipo=item.entity_type,
+            ator_apelidos=item.ator_apelidos,
             item_id=item.item_id,
             veiculo=item.veiculo,
             data=item.data_publicacao.date().isoformat() if item.data_publicacao else "",
-            url=item.link_noticia,
             titulo=item.titulo,
             texto=item.texto,
+            contexto=item.contexto,
         )
         try:
             saida = gerar_validado(
@@ -553,6 +554,11 @@ class Worker:
                             id=ator_id,
                             tipo=pendente["entity_type"],
                             nome=pendente["ator_nome"],
+                            # Os apelidos não ficam em `analyser_item`; vêm do cadastro,
+                            # para o panorama reconhecer o ator como a imprensa o chama.
+                            apelidos=self.enriquecedor.apelidos_do_ator(
+                                pendente["entity_type"], ator_id
+                            ),
                         ),
                         itens=[],
                     )

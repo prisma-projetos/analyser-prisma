@@ -60,7 +60,6 @@ def test_map_nao_vaza_rotulo(prompts: Prompts, rodada_1: Rodada, rodada_2: Rodad
             item_id=item.id,
             veiculo=item.veiculo,
             data=item.data.isoformat(),
-            url=item.url,
             titulo=item.titulo,
             texto=item.texto,
         )
