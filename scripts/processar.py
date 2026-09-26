@@ -11,6 +11,10 @@ que permite drenar a fila em segundos e pagar o modelo depois, no próprio ritmo
 
 Interromper no meio é seguro: o commit é por evento e por janela, e o `status` de cada item
 diz exatamente onde parou. Retomar é rodar de novo.
+
+Se o provedor do modelo cair no meio (fora do ar, travado, sem rede), o processamento pausa
+por `ESPERA_FALHA_SEGUNDOS` (padrão 3600, 1 hora) e retoma do mesmo evento ou janela, sem
+marcar nada como erro. As pausas aparecem no relatório e na auditoria da execução.
 """
 
 from __future__ import annotations
@@ -47,6 +51,12 @@ def _relatar(titulo: str, r: ResultadoWorker) -> None:
             print(f"      {aviso}")
         if len(r.avisos) > 10:
             print(f"      ... e mais {len(r.avisos) - 10}")
+    if r.esperas:
+        print(f"   pausas por falha do provedor do modelo ({len(r.esperas)}):")
+        for espera in r.esperas[:10]:
+            print(f"      {espera['inicio']}  {espera['unidade']}: {espera['erro'][:160]}")
+        if len(r.esperas) > 10:
+            print(f"      ... e mais {len(r.esperas) - 10}")
     if r.erros:
         print(f"   ERROS ({len(r.erros)}):")
         for erro in r.erros[:10]:

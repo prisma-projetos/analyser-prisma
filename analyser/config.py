@@ -262,6 +262,37 @@ def faixa_de_temas(materias: int) -> tuple[int, int]:
     return minimo, maximo
 
 
+#: Pausa padrão, em segundos, quando o provedor do modelo falha: 1 hora.
+#:
+#: Com o provedor fora do ar, o worker não marca o evento como erro nem pula a janela:
+#: desfaz o que começou, espera este tempo e tenta de novo o mesmo ponto. Ajustável por
+#: `ESPERA_FALHA_SEGUNDOS`, lida em tempo de execução por `ler_espera_falha`.
+ESPERA_FALHA_PADRAO_SEGUNDOS: Final[int] = 3600
+
+
+def ler_espera_falha() -> int:
+    """Pausa depois de uma falha do provedor, lida de `ESPERA_FALHA_SEGUNDOS`.
+
+    Lida na hora de montar o worker, e não na importação do módulo, para valer também o
+    que `carregar_dotenv` traz do `.env` — que só roda depois dos imports.
+    """
+    bruto = os.environ.get("ESPERA_FALHA_SEGUNDOS", "").strip()
+    if not bruto:
+        return ESPERA_FALHA_PADRAO_SEGUNDOS
+    try:
+        segundos = int(bruto)
+    except ValueError as erro:
+        raise RuntimeError(
+            f"ESPERA_FALHA_SEGUNDOS precisa ser um número inteiro de segundos: {bruto!r}"
+        ) from erro
+    if segundos < 1:
+        raise RuntimeError(
+            f"ESPERA_FALHA_SEGUNDOS precisa ser maior que zero: {segundos}. Sem pausa, o "
+            "worker tentaria de novo sem parar, martelando um provedor que está fora."
+        )
+    return segundos
+
+
 # --------------------------------------------------------------------------------------
 # Leitura de .env (sem dependência externa; o ambiente real tem precedência)
 # --------------------------------------------------------------------------------------

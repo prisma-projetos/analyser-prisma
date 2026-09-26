@@ -305,13 +305,84 @@ Há três limites diferentes, que não devem ser confundidos:
 
 | Limite | Configuração atual | O que limita |
 |---|---:|---|
-| Contexto | `OLLAMA_CONTEXT_LENGTH=16384` em `compose.yml` | O total de tokens que o modelo mantém disponível para uma requisição: prompt, dados de entrada e resposta precisam caber nesse espaço. |
+| Contexto | `OLLAMA_CONTEXT_LENGTH=32768` em `compose.yml` e `CONTEXTO_TOKENS=32768` efetivo no Analyser | O total de tokens que o modelo mantém disponível para uma requisição: prompt, dados de entrada e resposta precisam caber nesse espaço. Os dois valores precisam coincidir. |
 | Resposta por tarefa | `3000` (`resumo_item`), `14000` (`consolidacao_lote`) e `13000` (`consolidacao_final`) em `MAX_TOKENS_POR_TAREFA` | O teto enviado pelo Analyser em `max_tokens` para a geração de cada chamada. É um máximo, não uma quantidade que o modelo necessariamente usará. |
 | Tempo por chamada HTTP | `TIMEOUT_SEGUNDOS=900` no `.env` | Até 15 minutos para uma chamada ao servidor de modelo responder. Não é o tempo máximo da execução inteira. |
 
 Uma execução do pipeline pode ultrapassar 15 minutos, porque as chamadas ao modelo são sequenciais: cada resumo novo, cada consolidação de lote e cada consolidação final tem seu próprio timeout. O campo `OLLAMA_KEEP_ALIVE=30m` também **não** é um timeout; ele apenas mantém o modelo carregado na memória por até 30 minutos após o uso, reduzindo o custo de carregá-lo novamente.
 
 No Ollama local não existe, por si só, uma cota mensal de tokens como haveria em uma API paga. Os limites reais passam a ser contexto, memória RAM/VRAM, velocidade do hardware e os tetos configurados acima. A auditoria registra os tokens de prompt e resposta de cada execução, permitindo medir esse consumo. O contexto efetivo deve ser conferido com `docker compose exec modelo ollama ps`, pois um `num_ctx` definido no próprio modelo pode ter precedência sobre a configuração do servidor.
+
+Reduzir o contexto para 16.384 é tecnicamente possível somente alterando também
+`CONTEXTO_TOKENS`. O lote derivado cai automaticamente de 100 para 60. O incidente histórico
+em 16.384 usava lote 100: o prompt foi truncado silenciosamente e, em uma janela, o panorama
+citou apenas 47 de 94 matérias. Isso prova que 16.384 com lote 100 é inseguro; não é um teste
+A/B da configuração atual com lote 60.
+
+Na medição local, dobrar o contexto de 16.384 para 32.768 aumentou em aproximadamente
+0,64 GiB a residência do cache de atenção. Portanto, voltar a 16.384 pode economizar essa
+ordem de memória por chamada, mas não reduz pela metade a memória total, pois os pesos do
+modelo continuam carregados. No backlog consultado em 17/09/2026, o lote 60 produziria 461
+chamadas de consolidação de primeiro nível, contra 444 com lote 100: 17 chamadas adicionais.
+Ainda não foi executada uma comparação controlada da qualidade final entre as duas
+configurações com o código atual.
+
+#### Capacidade inicial do servidor KVM 4 (avaliação de 17/09/2026)
+
+O plano avaliado informa 4 vCPUs, 16 GB de RAM, 200 GB de NVMe e 16 TB de tráfego, sem GPU
+anunciada. Isso torna a inferência **CPU-only**: o modelo pode caber em memória, mas a duração
+das gerações passa a ser o principal risco operacional. A biblioteca oficial do Ollama informa
+6,6 GB para o artefato `qwen3.5:9b-q4_K_M`; esse tamanho em disco não é o consumo total em
+execução, pois ainda existem o processo do Ollama, o cache de contexto e o sistema operacional.
+
+`Q4_K_M` identifica a quantização dos pesos, não a identidade do modelo. O teste enviado pelo
+servidor em 17/09/2026 mostrou `qwen2.5:3b`, arquitetura `qwen2`, 3,1 bilhões de parâmetros e
+quantização `Q4_K_M`; o processo estava `100% CPU`, com contexto efetivo 32.768 e 3,4 GB
+residentes segundo `ollama ps`. Isso confirma o funcionamento desse modelo de teste, mas não
+confirma que o `qwen3.5:9b` esteja instalado, carregado ou selecionado pelo Analyser. O
+`qwen3.5:9b` pode usar a mesma quantização e continuar sendo outro conjunto de pesos, com outra
+arquitetura e aproximadamente três vezes mais parâmetros. A identificação deve considerar em
+conjunto nome/tag, ID, arquitetura, quantidade de parâmetros e quantização.
+
+A configuração inicial compatível e conservadora é:
+
+| Componente | Valor inicial | Justificativa |
+|---|---:|---|
+| Modelo | `qwen3.5:9b-q4_K_M` | Quantização Q4_K_M de 6,6 GB; registrar também o ID obtido no servidor e não depender apenas de `latest`. |
+| Contexto no Ollama | `OLLAMA_CONTEXT_LENGTH=16384` | Reduz pressão de memória em comparação com 32.768 sem repetir o antigo erro de lote 100. |
+| Contexto no Analyser | `CONTEXTO_TOKENS=16384` | Precisa coincidir com o Ollama; o código deriva automaticamente lote máximo 60. |
+| Paralelismo | `OLLAMA_NUM_PARALLEL=1` | Cada slot paralelo multiplica a reserva de contexto e disputa os mesmos 4 vCPUs. |
+| Modelos carregados | `OLLAMA_MAX_LOADED_MODELS=1` | Evita manter outro modelo concorrendo pela RAM. |
+| Permanência em RAM | `OLLAMA_KEEP_ALIVE=30m` | Evita recarregar o modelo durante o processamento contínuo do backlog. |
+| Corpo adicional | `EXTRA_BODY={"reasoning_effort":"none"}` | Mantém a configuração local atual; o suporte efetivo precisa ser confirmado no endpoint em uso. |
+| Timeout por chamada | `TIMEOUT_SEGUNDOS=5400` | Teto inicial de 90 minutos para CPU; não representa a duração esperada nem o prazo do Job. |
+
+Não se recomenda começar com contexto 8.000/8.192: o lote derivado cai para aproximadamente
+21 e aumenta o número de consolidações, além de ainda exigir validação de qualidade. Também não
+se recomenda iniciar com os comandos do CronJob recebido (`--eventos 500 --consolidar-tudo`).
+O teste deve separar as duas fases: primeiro `--eventos 1`, depois `--consolidar 1`; somente
+após medir cada fase, avançar gradualmente para pequenos lotes, como 5 e 10 eventos.
+
+O `activeDeadlineSeconds` de 1.800 segundos do manifesto é incompatível com um timeout de
+5.400 segundos por chamada. O prazo total deve ser definido depois do smoke test e precisa
+ser maior que a soma das chamadas que o Job pode executar, mais margem para carregamento,
+validação, commit e encerramento. Durante essa calibração, `backoffLimit: 0` evita repetir
+automaticamente um experimento caro.
+
+Antes de liberar o backlog, devem ser registrados: contexto e processador mostrados por
+`ollama ps`, RAM livre, pico de memória, duração por chamada, tokens de prompt e resposta,
+ausência de truncamento e cobertura das fontes no panorama. Esta avaliação não substitui esse
+benchmark no VPS. Se o mesmo servidor também hospedar banco, RabbitMQ e Kubernetes, 16 GB
+ficam com pouca margem; nesse cenário, a alternativa segura é separar o Ollama, ampliar o
+servidor ou avaliar `qwen3.5:4b` com um teste A/B de qualidade antes da troca.
+
+O rollback da calibração consiste em restaurar **juntos** `OLLAMA_CONTEXT_LENGTH=32768` e
+`CONTEXTO_TOKENS=32768`, reiniciar os dois processos e repetir o smoke test. Restaurar apenas
+um dos lados volta a permitir divergência entre o lote calculado e o contexto realmente
+disponível.
+
+Referências oficiais consultadas: [modelo e variantes do Qwen 3.5 no Ollama](https://ollama.com/library/qwen3.5/tags)
+e [configuração de contexto e concorrência do Ollama](https://docs.ollama.com/faq).
 
 ---
 
