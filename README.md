@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧠 analyser-prisma
+# analyser-prisma
 
 **Analisador do PRISMA**: transforma as classificações por parágrafo em **resumos por matéria** e em **panoramas mensais por ator e eixo** (negativo, neutro e positivo), gerados por LLM com rastreabilidade até a fonte.
 
@@ -17,7 +17,7 @@
 
 ---
 
-## 📍 Onde este módulo fica no PRISMA
+## Onde este módulo fica no PRISMA
 
 ```
 scrapping-prisma ──▶ classifier-prisma ──RabbitMQ──▶ [ analyser-prisma ] ──▶ System DB ──▶ api-prisma ──▶ app-prisma
@@ -26,21 +26,21 @@ scrapping-prisma ──▶ classifier-prisma ──RabbitMQ──▶ [ analyser-
 
 O analyser recebe notícias **já classificadas** e produz o texto que o eleitor lê. Ele não reclassifica: confia no rótulo do classifier.
 
-## 📑 Sumário
+## Sumário
 
-- [Ideia central](#-ideia-central)
-- [Arquitetura](#-arquitetura)
-- [Modos de execução](#-modos-de-execução)
-- [Como rodar](#-como-rodar)
-- [Configuração do modelo (LLM)](#-configuração-do-modelo-llm)
-- [Variáveis de ambiente](#-variáveis-de-ambiente)
-- [Regras invioláveis](#-regras-invioláveis)
-- [Testes](#-testes)
-- [CI/CD e deploy](#-cicd-e-deploy)
-- [Documentação](#-documentação)
-- [Repositórios do PRISMA](#-repositórios-do-prisma)
+- [Ideia central](#ideia-central)
+- [Arquitetura](#arquitetura)
+- [Modos de execução](#modos-de-execução)
+- [Como rodar](#como-rodar)
+- [Configuração do modelo (LLM)](#configuração-do-modelo-llm)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Regras invioláveis](#regras-invioláveis)
+- [Testes](#testes)
+- [CI/CD e deploy](#cicd-e-deploy)
+- [Documentação](#documentação)
+- [Repositórios do PRISMA](#repositórios-do-prisma)
 
-## 💡 Ideia central
+## Ideia central
 
 Duas camadas, com custos muito diferentes:
 
@@ -55,7 +55,7 @@ Duas camadas, com custos muito diferentes:
 - **Ator** pode ser político ou partido. O tratamento é idêntico e só o `tipo` muda.
 - **Regra de eixo (`eixo-por-sinal-v2`)**: a matéria rende um recorte **positivo** se tem trecho positivo confiante e um **negativo** se tem trecho negativo confiante. Sem nenhum dos dois, rende um único recorte **neutro**. Uma matéria que elogia e critica gera os dois recortes, em vez de virar neutro.
 
-## 🏗 Arquitetura
+## Arquitetura
 
 ```mermaid
 flowchart LR
@@ -111,7 +111,7 @@ flowchart LR
 5. **Versionamento**: grava uma nova versão sem tocar nas anteriores.
 6. **Verificação**: confere se todo id citado existe e se as contagens batem. Divergências viram aviso na auditoria.
 
-## 🔀 Modos de execução
+## Modos de execução
 
 | Modo | Entrypoint | Persistência | Uso |
 |---|---|---|---|
@@ -122,7 +122,7 @@ flowchart LR
 | **Migration** | `python -m scripts.aplicar_migration [--check-only]` | DDL `migrations/001_analyser.sql` | Job de deploy |
 | **Observabilidade** | `python -m scripts.progresso [--janelas]` | Somente leitura | Mostra quanto já foi processado e quanto falta |
 
-## 🚀 Como rodar
+## Como rodar
 
 ```bash
 git clone git@github.com:prisma-projetos/analyser-prisma.git
@@ -155,7 +155,7 @@ python -m scripts.processar --eventos 50 --consolidar-tudo         # 2. resumo +
 python -m scripts.progresso                                        # acompanhamento
 ```
 
-> ⚠ Mensagem drenada **sai da fila**. Ela fica durável em `analyser_inbox_evento`, mas não volta ao RabbitMQ.
+> Mensagem drenada **sai da fila**. Ela fica durável em `analyser_inbox_evento`, mas não volta ao RabbitMQ.
 >
 > O executor de migration aplica a DDL quando nenhuma tabela existe, segue em frente quando todas existem e são compatíveis, e **falha** quando o schema está parcial. Uma trava transacional impede dois Jobs de rodarem a migration ao mesmo tempo.
 
@@ -181,7 +181,7 @@ docker compose exec modelo ollama pull qwen3.5:9b            # ~5,7 GB, uma úni
 
 O `compose.yml` fixa `OLLAMA_CONTEXT_LENGTH=32768`, que **precisa** ser igual a `CONTEXTO_TOKENS`. Com o padrão de 4096, o Ollama trunca o início do prompt, que é justamente onde ficam as regras.
 
-## 🤖 Configuração do modelo (LLM)
+## Configuração do modelo (LLM)
 
 Nenhum nome de modelo aparece no código. Qualquer API **compatível com a OpenAI** funciona, e o modelo efetivamente usado fica registrado na auditoria.
 
@@ -193,7 +193,7 @@ Nenhum nome de modelo aparece no código. Qualquer API **compatível com a OpenA
 
 > Modelos com *raciocínio* (como o Qwen3.5) precisam dele **desligado**. Com raciocínio ligado e `temperature=0`, 2 de 3 execuções devolveram resposta vazia, o que quebra o determinismo. Os detalhes medidos estão comentados em [`.env.example`](.env.example).
 
-## ⚙ Variáveis de ambiente
+## Variáveis de ambiente
 
 | Variável | Padrão | Descrição |
 |---|---|---|
@@ -208,7 +208,7 @@ Nenhum nome de modelo aparece no código. Qualquer API **compatível com a OpenA
 | `RABBITMQ_NOTIFIER_*` | — | Credenciais, exchange, fila e routing key da notificação do classifier |
 | `RABBITMQ_DECLARE_TOPOLOGY` | `false` | **Sempre `false` em produção**: a topologia é da infra |
 
-## 🛡 Regras invioláveis
+## Regras invioláveis
 
 1. **O rótulo nunca entra no prompt do resumo (map)**, só no da consolidação (`ROTULO_NO_PROMPT = {"map": False, "reduce": True}`). O resumo é imparcial.
 2. **A classificação é imutável.** O mesmo `item_id` com rótulo diferente faz a rodada inteira ser rejeitada.
@@ -238,7 +238,7 @@ Detalhes em [`docs/Prisma_Analyser_Documentacao.md`](docs/Prisma_Analyser_Docume
 
 </details>
 
-## 🧪 Testes
+## Testes
 
 ```bash
 python -m pytest
@@ -255,11 +255,11 @@ python -m pytest
 | `test_armazenamento_postgres.py`, `test_aplicar_migration.py` | Persistência e migration |
 | `test_rabbitmq.py`, `test_enriquecimento.py`, `test_auditoria.py`, … | Consumidor, enriquecimento e auditoria |
 
-## 🔁 CI/CD e deploy
+## CI/CD e deploy
 
 `.gitea/workflows/ci-cd.yaml`: em push para `main`/`develop`, faz build da imagem → atualiza os manifestos → sincroniza no **ArgoCD**. Em Kubernetes, a migration roda como **Job** e a ingestão e o processamento rodam como **CronJobs**, com `activeDeadlineSeconds` maior que `ESPERA_FALHA_SEGUNDOS`.
 
-## 📚 Documentação
+## Documentação
 
 | Documento | Conteúdo |
 |---|---|
@@ -270,14 +270,14 @@ python -m pytest
 | [`docs/Auditoria_Integracao_Sistema_Completo.md`](docs/Auditoria_Integracao_Sistema_Completo.md) | Auditoria da integração de ponta a ponta |
 | [`relatorios/demo_banco_2026_08.html`](relatorios/demo_banco_2026_08.html) | Relatório visual "Da notícia ao panorama" |
 
-## 🧭 Repositórios do PRISMA
+## Repositórios do PRISMA
 
 | Repositório | Papel |
 |---|---|
 | [`.github`](https://github.com/prisma-projetos) | Página da organização |
-| [`scrapping-prisma`](https://github.com/prisma-projetos/scrapping-prisma) | 📰 Coleta de notícias |
-| [`classifier-prisma`](https://github.com/prisma-projetos/classifier-prisma) | 🏷 Identificação de entidades e classificação do teor |
-| **`analyser-prisma`** | 🧠 Resumos e panoramas com LLM *(este)* |
-| [`api-prisma`](https://github.com/prisma-projetos/api-prisma) | 🔌 API REST somente leitura |
-| [`app-prisma`](https://github.com/prisma-projetos/app-prisma) | 🖥 Interface web |
-| [`experiments-prisma`](https://github.com/prisma-projetos/experiments-prisma) | 🔬 Documentação, ADRs e experimentos do artigo |
+| [`scrapping-prisma`](https://github.com/prisma-projetos/scrapping-prisma) | Coleta de notícias |
+| [`classifier-prisma`](https://github.com/prisma-projetos/classifier-prisma) | Identificação de entidades e classificação do teor |
+| **`analyser-prisma`** | Resumos e panoramas com LLM *(este)* |
+| [`api-prisma`](https://github.com/prisma-projetos/api-prisma) | API REST somente leitura |
+| [`app-prisma`](https://github.com/prisma-projetos/app-prisma) | Interface web |
+| [`experiments-prisma`](https://github.com/prisma-projetos/experiments-prisma) | Documentação, ADRs e experimentos do artigo |
