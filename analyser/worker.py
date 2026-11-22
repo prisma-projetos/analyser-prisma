@@ -14,12 +14,22 @@ A ingestão custa milissegundos e o processamento custa segundos por item. Prend
 esperando o modelo faria a fila drenar a passo de tartaruga. A mensagem é confirmada assim
 que está durável na inbox, e o que garante a retomada depois de uma queda é o `status` —
 não a reentrega do broker, que já não vai acontecer.
+
+Quando o provedor do modelo cai
+-------------------------------
+Falha do provedor (`ErroDoProvedor`: fora do ar, travado, sem rede, recusando a chamada)
+não é falha do evento nem da janela. O worker desfaz o que começou, pausa por
+`ESPERA_FALHA_SEGUNDOS` (padrão 1 h) e tenta de novo a MESMA unidade, sem marcá-la como
+erro. Até 15/09/2026 cada evento virava `erro` e o lote avançava: com o Ollama
+inacessível, três execuções seguidas marcaram 1.500 eventos como erro definitivo.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -32,9 +42,9 @@ from analyser.armazenamento_postgres import (
     Ator,
     AuditoriaExecucaoPostgres,
 )
-from analyser.config import Config
+from analyser.config import Config, ler_espera_falha
 from analyser.enriquecimento import Enriquecedor, ItemEnriquecido
-from analyser.modelos import ErroDeValidacao, Modelo, gerar_validado
+from analyser.modelos import ErroDeValidacao, ErroDoProvedor, Modelo, gerar_validado
 from analyser.pipeline import Analyser
 from analyser.prompts import Prompts
 from analyser.schemas import (
@@ -66,6 +76,9 @@ class ResultadoWorker:
     #: não soube dizer quanto tinha gastado. As constantes de dimensionamento em
     #: `config.py` são estimativas justamente porque este dado não era guardado.
     tokens: Counter[str] = field(default_factory=Counter)
+    #: Uma entrada por pausa causada por falha do provedor do modelo: qual unidade
+    #: esperava, o erro e quando a pausa começou. Vai para a auditoria da execução.
+    esperas: list[dict[str, Any]] = field(default_factory=list)
 
 
 class Worker:
@@ -76,10 +89,18 @@ class Worker:
         conexao: psycopg.Connection,
         modelo: Modelo,
         config: Config,
+        *,
+        espera_falha_segundos: int | None = None,
+        dormir: Callable[[float], None] = time.sleep,
     ) -> None:
+        """`dormir` é injetável para os testes exercitarem a pausa sem esperar de verdade."""
         self.conexao = conexao
         self.modelo = modelo
         self.config = config
+        self.espera_falha_segundos = (
+            espera_falha_segundos if espera_falha_segundos is not None else ler_espera_falha()
+        )
+        self.dormir = dormir
         self.enriquecedor = Enriquecedor(conexao)
         self.prompts = Prompts(raiz=config.prompts)
         self.prompts.precarregar()
@@ -213,6 +234,7 @@ class Worker:
         destino.avisos.extend(origem.avisos)
         destino.erros.extend(origem.erros)
         destino.tokens.update(origem.tokens)
+        destino.esperas.extend(origem.esperas)
 
     def _dados_auditoria(
         self,
@@ -258,6 +280,7 @@ class Worker:
             "tokens": dict(resultado.tokens),
             "avisos": resultado.avisos,
             "erros": resultado.erros,
+            "esperas_por_falha_do_provedor": resultado.esperas,
         }
         if erro_inesperado:
             dados["erro_inesperado"] = erro_inesperado
@@ -287,40 +310,90 @@ class Worker:
         Um commit por evento, e não um no fim: uma queda no meio preserva tudo o que já foi
         resumido. O resumo é a parte cara, e refazê-lo por causa de um `rollback` amplo
         seria pagar duas vezes pelo mesmo trabalho.
+
+        As contagens de cada tentativa ficam num resultado parcial e só entram no total
+        depois do commit. Antes, o `rollback` desfazia os itens no banco mas não no
+        relatório: a execução 27 registrou "500 itens criados" sem ter gravado nenhum. Com
+        a retomada, a mesma tentativa pode se repetir, e o erro se multiplicaria.
+
+        Falha do provedor não marca o evento: o worker pausa e tenta o mesmo evento de
+        novo (ver `_pausar`). Qualquer outra falha continua marcando o evento como `erro`
+        e seguindo para o próximo, porque ela depende do evento e se repetiria igual.
         """
         resultado = ResultadoWorker()
 
         for linha in self._eventos_pendentes(limite):
             evento_id = linha["evento_id"]
-            try:
-                evento = NotificacaoClassifier.model_validate(linha["payload_json"])
-                itens = self.enriquecedor.enriquecer(evento)
+            while True:
+                parcial = ResultadoWorker()
+                try:
+                    evento = NotificacaoClassifier.model_validate(linha["payload_json"])
+                    itens = self.enriquecedor.enriquecer(evento)
 
-                for item in itens:
-                    self._processar_item(item, evento_id, resultado)
+                    for item in itens:
+                        self._processar_item(item, evento_id, parcial)
 
-                self.conexao.execute(
-                    """UPDATE analyser_inbox_evento
-                          SET status = 'processado', processado_em = now()
-                        WHERE evento_id = %s""",
-                    (evento_id,),
-                )
-                self.conexao.commit()
-                resultado.eventos_processados += 1
+                    self.conexao.execute(
+                        """UPDATE analyser_inbox_evento
+                              SET status = 'processado', processado_em = now()
+                            WHERE evento_id = %s""",
+                        (evento_id,),
+                    )
+                    self.conexao.commit()
+                    parcial.eventos_processados += 1
+                    self._somar_resultado(resultado, parcial)
+                    break
 
-            except Exception as erro:  # noqa: BLE001 — um evento ruim não derruba o lote
-                self.conexao.rollback()
-                self.conexao.execute(
-                    """UPDATE analyser_inbox_evento
-                          SET status = 'erro', tentativas = tentativas + 1, erro = %s
-                        WHERE evento_id = %s""",
-                    (str(erro)[:2000], evento_id),
-                )
-                self.conexao.commit()
-                resultado.erros.append(f"evento {evento_id}: {erro}")
-                logger.exception("Falha ao processar o evento %s", evento_id)
+                except ErroDoProvedor as erro:
+                    self.conexao.rollback()
+                    # Os tokens foram gastos mesmo com o rollback; as contagens, não.
+                    resultado.tokens.update(parcial.tokens)
+                    self._pausar(f"evento {evento_id}", erro, resultado)
+
+                except Exception as erro:  # noqa: BLE001 — um evento ruim não derruba o lote
+                    self.conexao.rollback()
+                    resultado.tokens.update(parcial.tokens)
+                    self.conexao.execute(
+                        """UPDATE analyser_inbox_evento
+                              SET status = 'erro', tentativas = tentativas + 1, erro = %s
+                            WHERE evento_id = %s""",
+                        (str(erro)[:2000], evento_id),
+                    )
+                    self.conexao.commit()
+                    resultado.erros.append(f"evento {evento_id}: {erro}")
+                    logger.exception("Falha ao processar o evento %s", evento_id)
+                    break
 
         return resultado
+
+    def _pausar(self, unidade: str, erro: ErroDoProvedor, resultado: ResultadoWorker) -> None:
+        """Espera o provedor do modelo voltar, sem descartar a unidade que falhou.
+
+        Quem chama já desfez o trabalho parcial com `rollback` e, depois da pausa, tenta
+        a MESMA unidade de novo. É isso que faz o processamento continuar de onde parou:
+        o evento continua `recebido` e a janela continua com itens `resumido`.
+
+        A espera acontece com a transação fechada, para o banco não segurar travas nem uma
+        sessão ociosa em transação durante uma hora. Se o processo for encerrado no meio
+        da pausa — pelo prazo do Job, por exemplo —, nada se perde: a próxima execução
+        encontra a mesma unidade pendente.
+        """
+        resultado.esperas.append(
+            {
+                "unidade": unidade,
+                "erro": str(erro)[:500],
+                "espera_segundos": self.espera_falha_segundos,
+                "inicio": agora_iso(),
+            }
+        )
+        logger.warning(
+            "Provedor do modelo indisponível (%s): %s. Processamento pausado por %d s; "
+            "depois retoma do mesmo ponto.",
+            unidade,
+            erro,
+            self.espera_falha_segundos,
+        )
+        self.dormir(self.espera_falha_segundos)
 
     def _processar_item(
         self, item: ItemEnriquecido, evento_id: int, resultado: ResultadoWorker
@@ -353,12 +426,13 @@ class Worker:
         prompt = self.prompts.montar_resumo_item(
             ator_nome=item.ator_nome,
             ator_tipo=item.entity_type,
+            ator_apelidos=item.ator_apelidos,
             item_id=item.item_id,
             veiculo=item.veiculo,
             data=item.data_publicacao.date().isoformat() if item.data_publicacao else "",
-            url=item.link_noticia,
             titulo=item.titulo,
             texto=item.texto,
+            contexto=item.contexto,
         )
         try:
             saida = gerar_validado(
@@ -458,55 +532,73 @@ class Worker:
                 else str(pendente["nr_partido"])
             )
             janela = pendente["janela_mes"]
-            # Fora do `try` porque o `except` lê os tokens desta instância: se a falha
-            # acontecer antes da atribuição, `analyser` estaria indefinido e o handler
-            # levantaria NameError por cima do erro real, escondendo a causa.
-            analyser: Analyser | None = None
-            try:
-                destino = ArmazenamentoPostgres(
-                    self.conexao,
-                    Ator(
-                        entity_type=pendente["entity_type"],
+            # Falha do provedor volta para cá e tenta a mesma janela depois da pausa;
+            # qualquer outro desfecho, sucesso ou erro, segue para a próxima janela.
+            while True:
+                # Fora do `try` porque o `except` lê os tokens desta instância: se a falha
+                # acontecer antes da atribuição, `analyser` estaria indefinido e o handler
+                # levantaria NameError por cima do erro real, escondendo a causa.
+                analyser: Analyser | None = None
+                try:
+                    destino = ArmazenamentoPostgres(
+                        self.conexao,
+                        Ator(
+                            entity_type=pendente["entity_type"],
+                            ator_id=ator_id,
+                            nome=pendente["ator_nome"],
+                        ),
+                    )
+                    analyser = Analyser(self.config, self.modelo, armazenamento=destino)
+                    rodada = Rodada(
+                        ator=AtorPolitico(
+                            id=ator_id,
+                            tipo=pendente["entity_type"],
+                            nome=pendente["ator_nome"],
+                            # Os apelidos não ficam em `analyser_item`; vêm do cadastro,
+                            # para o panorama reconhecer o ator como a imprensa o chama.
+                            apelidos=self.enriquecedor.apelidos_do_ator(
+                                pendente["entity_type"], ator_id
+                            ),
+                        ),
+                        itens=[],
+                    )
+                    interno = analyser._recalcular_janela  # etapas 3 a 6
+                    from analyser.pipeline import ResultadoExecucao
+
+                    parcial = ResultadoExecucao(
                         ator_id=ator_id,
-                        nome=pendente["ator_nome"],
-                    ),
-                )
-                analyser = Analyser(self.config, self.modelo, armazenamento=destino)
-                rodada = Rodada(
-                    ator=AtorPolitico(
-                        id=ator_id,
-                        tipo=pendente["entity_type"],
-                        nome=pendente["ator_nome"],
-                    ),
-                    itens=[],
-                )
-                interno = analyser._recalcular_janela  # etapas 3 a 6
-                from analyser.pipeline import ResultadoExecucao
+                        ator_nome=pendente["ator_nome"],
+                        rodada=f"worker/{janela}",
+                    )
+                    interno(rodada, janela, parcial)
 
-                parcial = ResultadoExecucao(
-                    ator_id=ator_id,
-                    ator_nome=pendente["ator_nome"],
-                    rodada=f"worker/{janela}",
-                )
-                interno(rodada, janela, parcial)
-
-                self.conexao.commit()
-                resultado.janelas_consolidadas += 1
-                resultado.panoramas_gravados += len(parcial.panoramas)
-                resultado.avisos.extend(parcial.avisos)
-                resultado.erros.extend(parcial.erros)
-                resultado.tokens.update(analyser.tokens)
-
-            except Exception as erro:  # noqa: BLE001
-                self.conexao.rollback()
-                # O consumo é contabilizado mesmo na falha, e de propósito: uma janela que
-                # estourou o contexto é exatamente aquela cujo tamanho de prompt precisa
-                # aparecer na auditoria. Descartar o número junto com o erro apagaria a
-                # evidência de por que ela falhou.
-                if analyser is not None:
+                    self.conexao.commit()
+                    resultado.janelas_consolidadas += 1
+                    resultado.panoramas_gravados += len(parcial.panoramas)
+                    resultado.avisos.extend(parcial.avisos)
+                    resultado.erros.extend(parcial.erros)
                     resultado.tokens.update(analyser.tokens)
-                resultado.erros.append(f"janela {ator_id}/{janela}: {erro}")
-                logger.exception("Falha ao consolidar %s/%s", ator_id, janela)
+                    break
+
+                except ErroDoProvedor as erro:
+                    # O rollback mantém os itens em `resumido`: a janela continua pendente
+                    # e é ela mesma que se tenta de novo depois da pausa.
+                    self.conexao.rollback()
+                    if analyser is not None:
+                        resultado.tokens.update(analyser.tokens)
+                    self._pausar(f"janela {ator_id}/{janela}", erro, resultado)
+
+                except Exception as erro:  # noqa: BLE001
+                    self.conexao.rollback()
+                    # O consumo é contabilizado mesmo na falha, e de propósito: uma janela
+                    # que estourou o contexto é exatamente aquela cujo tamanho de prompt
+                    # precisa aparecer na auditoria. Descartar o número junto com o erro
+                    # apagaria a evidência de por que ela falhou.
+                    if analyser is not None:
+                        resultado.tokens.update(analyser.tokens)
+                    resultado.erros.append(f"janela {ator_id}/{janela}: {erro}")
+                    logger.exception("Falha ao consolidar %s/%s", ator_id, janela)
+                    break
 
         return resultado
 

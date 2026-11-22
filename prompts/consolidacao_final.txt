@@ -6,6 +6,14 @@ Essa informação identifica qual recorte está na sua frente. Ela não muda com
 escreve: a extensão, o cuidado e a forma são os mesmos para qualquer recorte. Não ajuste
 intensidade, escolha de palavras ou ênfase por causa de qual recorte é este.
 
+Ator analisado: {ATOR}
+Todas as matérias citam este ator, mas nem sempre falam dele: algumas o citam de passagem,
+outras registram o que ele disse ou fez a respeito de outra pessoa. Escreva sobre o que a
+cobertura registra a respeito do ator. Uma crítica ou um elogio que o próprio ator fez a
+outra pessoa não é crítica nem elogio a ele; se entrar no texto, deixe claro quem falou de
+quem. Reconheça o ator também pelos outros nomes pelos quais é citado: são a mesma pessoa
+ou o mesmo partido.
+
 REGRAS DE FIDELIDADE
 - Use exclusivamente as consolidações parciais fornecidas abaixo. Conhecimento externo
   sobre o ator, sobre os veículos ou sobre os fatos é proibido, ainda que você o tenha.

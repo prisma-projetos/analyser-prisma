@@ -268,3 +268,49 @@ def test_interrupcao_deixa_execucao_em_andamento_e_nao_bloqueia_retomada(
         (retomada.execucao_id,),
     ).fetchone()[0]
     assert status == "concluida"
+
+
+def test_queda_do_provedor_pausa_e_termina_o_mesmo_evento(conexao, raiz: Path) -> None:
+    """Com o provedor fora na primeira chamada, o evento não vira erro: pausa e retoma.
+
+    Regressão do incidente de 15/09/2026, com transação real: o `rollback` antes da pausa
+    não pode deixar o evento em estado nenhum além de `recebido`, e a retomada precisa
+    terminar o MESMO evento, sem contar tentativa de erro.
+    """
+    from analyser.config import Config
+    from analyser.modelos import ErroDoProvedor, ModeloFake
+    from analyser.worker import Worker
+
+    fake = ModeloFake()
+    quedas = [ErroDoProvedor("O provedor do modelo não respondeu (ConnectError).")]
+
+    class ModeloQueCai:
+        """Falha na primeira chamada, como um Ollama que ainda não subiu."""
+
+        nome = "fake"
+        chamadas_por_tarefa = fake.chamadas_por_tarefa
+
+        @property
+        def chamadas(self) -> int:
+            return fake.chamadas
+
+        def gerar(self, **kwargs):
+            if quedas:
+                raise quedas.pop(0)
+            return fake.gerar(**kwargs)
+
+    dormidas: list[float] = []
+    config = Config(entrada=raiz / "dados" / "rodada_1.json", prompts=raiz / "prompts")
+    worker = Worker(
+        conexao, ModeloQueCai(), config, espera_falha_segundos=3600, dormir=dormidas.append
+    )
+
+    resultado = worker.processar_eventos(limite=10)
+
+    assert dormidas == [3600]
+    assert resultado.eventos_processados == 1, resultado.erros
+    assert resultado.erros == []
+    status, tentativas, erro = conexao.execute(
+        "SELECT status, tentativas, erro FROM analyser_inbox_evento"
+    ).fetchone()
+    assert (status, tentativas, erro) == ("processado", 0, None)

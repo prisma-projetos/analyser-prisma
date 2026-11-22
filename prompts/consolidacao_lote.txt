@@ -6,10 +6,17 @@ Conjunto sendo consolidado: {EIXO}
 Essa informação identifica qual recorte está na sua frente. Ela não muda como você
 escreve: a extensão, o cuidado e a forma são os mesmos para qualquer recorte.
 
+Ator analisado: {ATOR}
+Todos os resumos são sobre este ator. Reconheça-o pelo nome e pelos outros nomes pelos
+quais ele é citado: são a mesma pessoa ou o mesmo partido.
+
 REGRAS DE FIDELIDADE
 - Use exclusivamente os resumos fornecidos abaixo. Conhecimento externo sobre o ator,
   sobre os veículos ou sobre os fatos é proibido, ainda que você o tenha.
 - Se algo não está nos resumos, não é escrito. Não complete lacunas nem suponha desfechos.
+- Registre sempre quem fez o quê. Quando o próprio ator critica, acusa ou apoia outra
+  pessoa, o ponto diz isso com todas as letras, sem apresentar o fato como algo dito a
+  respeito dele.
 - Toda afirmação precisa citar os ids das matérias que a sustentam. Uma afirmação sem id
   não deve existir.
 - Duas matérias sobre o mesmo fato são um tema só, com os dois ids, não dois temas.

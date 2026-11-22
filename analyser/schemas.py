@@ -92,6 +92,11 @@ class AtorPolitico(BaseModel):
     id: str
     tipo: TipoAtor
     nome: str
+    #: Outros nomes pelos quais o ator é citado — os `aliases` de `entidade_matching`. O
+    #: `nome` é o formato bruto do TSE, e a imprensa quase nunca escreve assim: "LUIS
+    #: EDUARDO GRANGEIRO GIRÃO" aparece nas matérias como "Eduardo Girão". Sem os
+    #: apelidos no prompt, o modelo tratou os dois nomes como duas pessoas.
+    apelidos: list[str] = Field(default_factory=list)
 
 
 class Rodada(BaseModel):

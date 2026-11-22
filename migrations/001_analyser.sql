@@ -12,6 +12,8 @@
 --
 -- Não usa `IF NOT EXISTS` de propósito: rodar duas vezes deve falhar em vez de mascarar
 -- que o estado do banco não é o esperado.
+-- O executor `scripts/aplicar_migration.py` consulta o catálogo antes: quando esta versão
+-- já está completa, ele retorna sucesso sem executar novamente este arquivo.
 --
 -- A descrição coluna a coluna está em docs/pdf/Dicionario_Dados_Analyser.pdf.
 

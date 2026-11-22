@@ -91,6 +91,23 @@ class ErroDePrompt(ErroDeResposta):
     """
 
 
+class ErroDoProvedor(ErroDeResposta):
+    """O provedor do modelo falhou ou recusou a chamada — o problema não é o item.
+
+    Cobre o Ollama fora do ar, travado (timeout), sem rota de rede, derrubando a conexão
+    no meio da resposta, devolvendo status HTTP de erro ou uma resposta que não é a da
+    API. Em todos esses casos nenhuma outra chamada daria certo agora, e a MESMA chamada,
+    feita mais tarde, pode dar.
+
+    Subclasse de `ErroDeResposta` porque tem a mesma natureza — problema da execução
+    inteira, não daquele item — e quem já trata `ErroDeResposta` continua parando a
+    execução. A diferença é que aqui esperar resolve: o worker pausa e retoma do mesmo
+    ponto, em vez de marcar o evento como erro e avançar para o próximo. Foi esse avanço
+    que, em 15/09/2026, fez três execuções seguidas marcarem 500 eventos cada como erro
+    definitivo com o Ollama inacessível (docs/Diagnostico_Kubernetes_Migration_Ollama_2026_09_17.md).
+    """
+
+
 class Modelo(Protocol):
     """Contrato mínimo que o pipeline exige de um modelo."""
 
@@ -516,20 +533,40 @@ class ModeloAPI:
         corpo_envio.update(self._extra)
         corpo_envio.update(self._extra_por_tarefa.get(tarefa, {}))
 
-        resposta = self._cliente.post(
-            f"{self._base_url}/chat/completions", json=corpo_envio
-        )
+        import httpx  # já carregado no __init__; aqui só para nomear as exceções
+
+        # Daqui até ler a escolha, toda falha é do PROVEDOR, não do item: conexão
+        # recusada, timeout, conexão derrubada, status de erro, corpo que não é da API.
+        # Nenhuma delas melhora trocando de item, então todas viram `ErroDoProvedor` —
+        # o worker pausa e tenta de novo a mesma chamada, em vez de marcar o evento
+        # como erro definitivo.
+        try:
+            resposta = self._cliente.post(
+                f"{self._base_url}/chat/completions", json=corpo_envio
+            )
+        except httpx.RequestError as erro:
+            raise ErroDoProvedor(
+                f"O provedor do modelo não respondeu à chamada de '{tarefa}' "
+                f"({type(erro).__name__}: {erro})."
+            ) from erro
         if resposta.status_code >= 400:
             # O corpo costuma dizer qual campo o provedor recusou — sem ele, um
             # EXTRA_BODY que este provedor não aceita vira um 400 mudo.
-            raise ErroDeResposta(
+            raise ErroDoProvedor(
                 f"O provedor recusou a chamada de '{tarefa}' "
                 f"(HTTP {resposta.status_code}): {resposta.text[:400]}"
             )
 
-        corpo = resposta.json()
-        uso = corpo.get("usage") or {}
-        escolha = corpo["choices"][0]
+        try:
+            corpo = resposta.json()
+            uso = corpo.get("usage") or {}
+            escolha = corpo["choices"][0]
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError) as erro:
+            raise ErroDoProvedor(
+                f"A resposta à chamada de '{tarefa}' não tem o formato da API de chat "
+                f"({type(erro).__name__}: {erro}). Costuma ser um proxy ou gateway "
+                "respondendo no lugar do modelo."
+            ) from erro
         texto = escolha.get("message", {}).get("content") or ""
         motivo = escolha.get("finish_reason")
 

@@ -10,9 +10,10 @@ mesmo jeito, qualquer que seja o agrupamento que o hospede. Não escreva nada qu
 para elogiar nem para atacar o alvo.
 
 REGRAS DE FIDELIDADE
-- Use exclusivamente o que está no texto fornecido abaixo. Conhecimento externo sobre o
-  ator, sobre o veículo ou sobre os fatos é proibido, ainda que você o tenha.
-- Se uma informação não está no texto, ela não é escrita. Não complete lacunas, não
+- Use exclusivamente o que está na matéria abaixo: os trechos e o contexto. Conhecimento
+  externo sobre o ator, sobre o veículo ou sobre os fatos é proibido, ainda que você o
+  tenha.
+- Se uma informação não está na matéria, ela não é escrita. Não complete lacunas, não
   suponha desfechos, não infira intenções.
 - Preserve as atribuições: quem afirmou o quê, segundo a matéria.
 - Se a matéria registra manifestação, contestação ou versão de alguém citado, isso faz
@@ -23,20 +24,31 @@ REGRAS DE FIDELIDADE
   texto não sustente.
 - A matéria pode mencionar mais de um ator político. Resuma apenas o que diz respeito ao
   ator indicado como alvo.
+- Chame o alvo pelo nome que a matéria usa para ele.
+
+TRECHOS E CONTEXTO
+Os trechos são os parágrafos da matéria que citam o alvo: é deles que sai o resumo. O
+contexto são parágrafos vizinhos da mesma matéria que não citam o alvo. Use o contexto só
+para entender os trechos (de quem eles falam, qual é a decisão, qual é o processo) e nunca
+como assunto do resumo. Se um trecho menciona algo de forma vaga ("a escola", "a
+decisão", "o processo") e o contexto diz o que é, use o nome que está no contexto. Se o
+contexto trouxer notícia sem relação com os trechos, ignore-o.
 
 TAREFA
 Escreva um resumo de 2 a 3 frases e liste de 2 a 5 temas. Cada tema é uma expressão curta,
 de 1 a 4 palavras, que nomeia um assunto tratado pela matéria.
 
 MATÉRIA
-alvo: {ATOR_NOME} ({ATOR_TIPO})
+alvo: {ATOR}
 id: {ITEM_ID}
 veículo: {VEICULO}
 data: {DATA}
-url: {URL}
 título: {TITULO}
-texto:
+trechos:
 {TEXTO}
+
+contexto:
+{CONTEXTO}
 
 FORMATO DA RESPOSTA
 Responda apenas com um objeto JSON, sem cercas de código e sem comentários:
